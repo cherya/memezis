@@ -35,5 +35,3 @@ func NewC(m string, c int) *HTTPError {
 		err:        errors.New(m),
 	}
 }
-
-

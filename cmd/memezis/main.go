@@ -4,18 +4,85 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/cherya/memezis/config"
-	fs "github.com/cherya/memezis/internal/filestore"
-	"github.com/cherya/memezis/internal/memezis"
-	p "github.com/cherya/memezis/internal/memezis"
-	s "github.com/cherya/memezis/internal/store"
+	"github.com/cherya/memezis/internal/app/auth"
+	fs "github.com/cherya/memezis/internal/app/filestore"
+	"github.com/cherya/memezis/internal/app/memezis"
+	s "github.com/cherya/memezis/internal/app/store"
 	q "github.com/cherya/memezis/pkg/queue"
+	_ "github.com/cherya/memezis/web/statik"
 
+	"github.com/go-chi/chi"
 	"github.com/gomodule/redigo/redis"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
+	statik "github.com/rakyll/statik/fs"
+	clog "github.com/utrack/clay/v2/log"
+	"github.com/utrack/clay/v2/transport/middlewares/mwgrpc"
+	"github.com/utrack/clay/v2/transport/server"
 )
+
+func main() {
+	initEnv()
+
+	db, err := sqlx.Connect("postgres", config.GetValue(config.DatabaseDsn))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	store := s.NewStore(db)
+
+	redisPool := initRedisPool()
+
+	queue := q.NewManager(redisPool, "memezis")
+	f := fs.NewStore(
+		config.GetValue(config.S3BucketURL),
+		config.GetValue(config.S3Endpoint),
+		config.GetValue(config.S3Key),
+		config.GetValue(config.S3Secret),
+		config.GetValue(config.S3Region),
+		config.GetValue(config.S3BucketName),
+	)
+	router := chi.NewRouter()
+	serveSwaggerui(router)
+
+	memezis := memezis.NewMemezis(
+		store,
+		queue,
+		f,
+	)
+	port := config.GetInt(config.ServerPort)
+	srv := server.NewServer(
+		port,
+		server.WithHTTPMux(router),
+		server.WithGRPCUnaryMiddlewares(
+			mwgrpc.UnaryPanicHandler(clog.Default),
+			grpc_auth.UnaryServerInterceptor(auth.NewAuthenticator(getClients()).AuthMiddleware),
+		),
+	)
+
+	go func() {
+		err = srv.Run(memezis)
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+
+	log.Printf("app running on port %d...", port)
+
+	termChan := make(chan os.Signal)
+	signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)
+	<-termChan
+
+	srv.Stop()
+}
 
 func initEnv() {
 	env := flag.String("env", "local.env", "env file with config values")
@@ -37,46 +104,44 @@ func logEnv(env *string) {
 	}
 }
 
-func main() {
-	initEnv()
-
-	db, err := sqlx.Connect("postgres", config.GetValue(config.DatabaseDsn))
+func serveSwaggerui(mux *chi.Mux) {
+	statikFS, err := statik.New()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
-	defer db.Close()
+	fileServer := http.StripPrefix("/swaggerui/", http.FileServer(statikFS))
+	mux.Get("/swaggerui/*", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Vary", "Accept-Encoding")
+		//w.Header().Set("Cache-Control", "public, max-age=7776000")
+		fileServer.ServeHTTP(w, r)
+	})
+}
 
-	store := s.NewStore(db)
+func getClients() map[string]*auth.Client {
+	//TODO: remove hardcode
+	return map[string]*auth.Client{
+		config.GetValue(config.BotClientKey): {Name: "memezis_bot"},
+	}
+}
 
-	var redisPool = &redis.Pool{
+func initRedisPool() *redis.Pool {
+	pool := &redis.Pool{
 		MaxActive: 5,
 		MaxIdle:   5,
 		Wait:      true,
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", config.GetValue(config.RedisAddress), redis.DialPassword(config.GetValue(config.RedisPassword)))
+			return redis.Dial("tcp",
+				config.GetValue(config.RedisAddress),
+				redis.DialPassword(config.GetValue(config.RedisPassword)))
 		},
 	}
+	conn := pool.Get()
+	defer conn.Close()
 
-	queue := q.NewManager(redisPool)
-	f := fs.NewStore(
-		config.GetValue(config.S3BucketURL),
-		config.GetValue(config.S3Endpoint),
-		config.GetValue(config.S3Key),
-		config.GetValue(config.S3Secret),
-		config.GetValue(config.S3Region),
-		config.GetValue(config.S3BucketName),
-	)
-	app := p.NewMemezis(
-		store,
-		queue,
-		f,
-		//TODO: remove hardcode
-		map[string]*memezis.Client{
-			config.GetValue(config.BotClientKey): {Name: memezis.SourceMemezisBot},
-		},
-	)
-
-	if err := app.Run(8080); err != nil {
-		log.Fatal(err)
+	_, err := conn.Do("PING")
+	if err != nil {
+		log.Fatal("can't connect to redis. PING failed: ", err)
 	}
+
+	return pool
 }

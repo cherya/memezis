@@ -1,0 +1,140 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+	info: {
+        title: "Memezis API: Service to rule memes"
+        version: "1.0"
+    };
+}
+;
+
+service Memezis {
+    rpc AddPost (AddPostRequest) returns (AddPostResponse) {
+        option (google.api.http) = {
+            post: "/post"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+            summary: "adding post"
+        };
+    }
+    rpc GetPostByID (GetPostByIDRequest) returns (Post) {
+        option (google.api.http) = {
+            get: "/post/{postID}"
+        };
+        option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+            summary: "getting post by id"
+        };
+    }
+    rpc GetRandomPost (google.protobuf.Empty) returns (Post) {
+        option (google.api.http) = {
+            get: "/post/random"
+        };
+        option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+            summary: "getting random post"
+        };
+    }
+    rpc UpVote (VoteRequest) returns (Vote) {
+        option (google.api.http) = {
+            post: "/post/{postID}/upvote"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+            summary: "upvote post"
+        };
+    }
+    rpc DownVote (VoteRequest) returns (Vote) {
+        option (google.api.http) = {
+            post: "/post/{postID}/downvote"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+            summary: "downvote post"
+        };
+    }
+    rpc GetQueueInfo (GetQueueInfoRequest) returns (GetQueueInfoResponse) {
+        option (google.api.http) = {
+            get: "/queue/{queue}/info"
+        };
+        option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+            summary: "get queue info"
+        };
+    }
+    rpc UploadMedia (stream UploadMediaRequest) returns (UploadMediaResponse);
+}
+
+message AddPostRequest {
+    repeated Media media = 1;
+    string addedBy = 2;
+    string text = 3;
+    repeated string tags = 4;
+    google.protobuf.Timestamp createdAt = 5;
+}
+
+message Media {
+    string URL = 1;
+    string type = 2;
+    string sourceID = 3;
+    string SHA1 = 4;
+}
+
+message Vote {
+    int64 up = 1;
+    int64 down = 2;
+    string status = 3;
+}
+
+message AddPostResponse {
+    int64 ID = 1;
+    repeated int64 duplicates = 2;
+}
+
+message GetPostByIDRequest {
+    int64 postID = 1;
+}
+
+message Post {
+    int64 ID = 1;
+    repeated Media media = 2;
+    string addedBy = 3;
+    string source = 4;
+    Vote votes = 5;
+    repeated string tags = 6;
+    string text = 7;
+}
+
+message VoteRequest {
+    string userID = 1;
+    int64 postID = 2;
+}
+
+message GetQueueInfoRequest {
+    string queue = 1;
+}
+
+message GetQueueInfoResponse {
+    int64 length = 1;
+    google.protobuf.Timestamp lastPostTime = 2;
+    google.protobuf.Timestamp dueTime = 3;
+}
+
+message MediaMetadata {
+    string filename = 1;
+    string extension = 2;
+}
+
+message UploadMediaRequest {
+    oneof t {
+        bytes image = 1;
+        MediaMetadata meta = 2;
+    }
+}
+
+message UploadMediaResponse {
+    string URL = 1;
+}

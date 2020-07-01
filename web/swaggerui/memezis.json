@@ -1,0 +1,337 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Memezis API: Service to rule memes",
+    "version": "1.0"
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/post": {
+      "post": {
+        "summary": "adding post",
+        "operationId": "Memezis_AddPost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/AddPostResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AddPostRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Memezis"
+        ]
+      }
+    },
+    "/post/random": {
+      "get": {
+        "summary": "getting random post",
+        "operationId": "Memezis_GetRandomPost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/Post"
+            }
+          }
+        },
+        "tags": [
+          "Memezis"
+        ]
+      }
+    },
+    "/post/{postID}": {
+      "get": {
+        "summary": "getting post by id",
+        "operationId": "Memezis_GetPostByID",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/Post"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "postID",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "Memezis"
+        ]
+      }
+    },
+    "/post/{postID}/downvote": {
+      "post": {
+        "summary": "downvote post",
+        "operationId": "Memezis_DownVote",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/Vote"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "postID",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/VoteRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Memezis"
+        ]
+      }
+    },
+    "/post/{postID}/upvote": {
+      "post": {
+        "summary": "upvote post",
+        "operationId": "Memezis_UpVote",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/Vote"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "postID",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/VoteRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Memezis"
+        ]
+      }
+    },
+    "/queue/{queue}/info": {
+      "get": {
+        "summary": "get queue info",
+        "operationId": "Memezis_GetQueueInfo",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/GetQueueInfoResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "queue",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Memezis"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "AddPostRequest": {
+      "type": "object",
+      "properties": {
+        "media": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Media"
+          }
+        },
+        "addedBy": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "AddPostResponse": {
+      "type": "object",
+      "properties": {
+        "ID": {
+          "type": "string",
+          "format": "int64"
+        },
+        "duplicates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "int64"
+          }
+        }
+      }
+    },
+    "GetQueueInfoResponse": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "string",
+          "format": "int64"
+        },
+        "lastPostTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "dueTime": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "Media": {
+      "type": "object",
+      "properties": {
+        "URL": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "sourceID": {
+          "type": "string"
+        },
+        "SHA1": {
+          "type": "string"
+        }
+      }
+    },
+    "MediaMetadata": {
+      "type": "object",
+      "properties": {
+        "filename": {
+          "type": "string"
+        },
+        "extension": {
+          "type": "string"
+        }
+      }
+    },
+    "Post": {
+      "type": "object",
+      "properties": {
+        "ID": {
+          "type": "string",
+          "format": "int64"
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Media"
+          }
+        },
+        "addedBy": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "votes": {
+          "$ref": "#/definitions/Vote"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "text": {
+          "type": "string"
+        }
+      }
+    },
+    "UploadMediaResponse": {
+      "type": "object",
+      "properties": {
+        "URL": {
+          "type": "string"
+        }
+      }
+    },
+    "Vote": {
+      "type": "object",
+      "properties": {
+        "up": {
+          "type": "string",
+          "format": "int64"
+        },
+        "down": {
+          "type": "string",
+          "format": "int64"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "VoteRequest": {
+      "type": "object",
+      "properties": {
+        "userID": {
+          "type": "string"
+        },
+        "postID": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    }
+  }
+}

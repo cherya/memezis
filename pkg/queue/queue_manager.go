@@ -1,139 +1,115 @@
 package queue
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/gocraft/work"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 )
 
 const (
-	EverythingQueue  = "everything"
-
-	MemezisNamespace = "memezis"
+	EverythingQueue = "everything"
 )
+
+var ErrEmptyQueue = errors.New("queue is empty")
 
 type Manager struct {
 	redis *redis.Pool
+	ns    string
 }
 
-func NewManager(pool *redis.Pool) *Manager {
+func NewManager(pool *redis.Pool, namespace string) *Manager {
 	return &Manager{
 		redis: pool,
+		ns: namespace,
 	}
 }
 
-func (m *Manager) Push(queue string, postID int64) error {
-	enqueuer := work.NewEnqueuer(MemezisNamespace, m.redis)
-	_, err := enqueuer.Enqueue(queue, work.Q{"postID": postID})
-	if err != nil {
-		return errors.Wrap(err, "QueueManager.Push: can't enqueue job")
-	}
-	return nil
-}
-
-func (m *Manager) PushWithDelay(queue string, delay time.Duration, postID int64) error {
-	enqueuer := work.NewEnqueuer(MemezisNamespace, m.redis)
-	_, err := enqueuer.EnqueueIn(queue, int64(delay.Seconds()), work.Q{"postID": postID})
-	if err != nil {
-		return errors.Wrap(err, "QueueManager.Push: can't enqueue job")
-	}
-	return nil
-}
-
-func (m *Manager) QueueLength(queue string) (int64, error) {
+func (m *Manager) Push(queueName string, value string) error {
 	conn := m.redis.Get()
 	defer conn.Close()
 
-	llen, err := redis.Int64(conn.Do("LLEN", queueJobsListKey(queue)))
+	_, err := conn.Do("ZADD", m.queueKey(queueName), time.Now().Unix() * 1000, value)
+	if err != nil {
+		return errors.Wrap(err, "QueueManager.SetQueueTimeout: can't push value")
+	}
+
+	return nil
+}
+
+func (m *Manager) Pop(queueName string) (string, error) {
+	conn := m.redis.Get()
+	defer conn.Close()
+
+	reply, err := redis.Strings(conn.Do("ZPOPMIN", m.queueKey(queueName)))
+	if err != nil {
+		return "", errors.Wrap(err, "QueueManager.Pop: can't pop value")
+	}
+	if len(reply) == 0 {
+		return "", ErrEmptyQueue
+	}
+
+	err = m.updateQueueLastPopTime(queueName, time.Now().UTC())
+	if err != nil {
+		return "", errors.Wrap(err, "QueueManager.Pop: can't update pop time")
+	}
+
+	return reply[0], nil
+}
+
+func (m *Manager) QueueLength(queueName string) (int64, error) {
+	conn := m.redis.Get()
+	defer conn.Close()
+	l, err := redis.Int64(conn.Do("ZCARD", m.queueKey(queueName)))
 	if err != nil {
 		return 0, errors.Wrap(err, "QueueManager.QueueLength: can't get queue length")
 	}
-
-	locked, err := redis.Int64(conn.Do("GET", queueLockedItemsKey(queue)))
-	if err != nil {
-		return 0, errors.Wrap(err, "QueueManager.QueueLength: can't get locked items count")
-	}
-
-	return llen + locked, nil
+	return l, nil
 }
 
-func (m *Manager) QueueLastJobTime(queue string) (time.Time, error) {
-	return m.getQueueLastHandleTime(queue)
+func (m *Manager) QueueLastPopTime(queue string) (time.Time, error) {
+	return m.getQueueLastPopTime(queue, time.Now().UTC())
 }
 
-type Context struct{}
-
-func (m *Manager) ConsumeWithDelay(queue string, handler func(job *work.Job) error) {
-	pool := work.NewWorkerPool(Context{}, 2, MemezisNamespace, m.redis)
-	ticker := time.NewTicker(time.Second * 10)
-
-	pool.JobWithOptions(queue, work.JobOptions{MaxConcurrency: 1}, func(job *work.Job) error {
-		for range ticker.C {
-			t, err := m.getQueueLastHandleTime(queue)
-			if err != nil {
-				return errors.Wrap(err, "ConsumeWithDelay: can't get queue last handle time")
-			}
-			timeout, err := m.GetQueueTimeout(queue)
-			if err != nil {
-				return errors.Wrap(err, "ConsumeWithDelay: can't get queue timeout")
-			}
-			if t.UTC().Add(timeout).Before(time.Now().UTC()) {
-				err = handler(job)
-				if err == nil {
-					rerr := m.updateQueueLastHandleTime(queue)
-					if rerr != nil {
-						return errors.Wrap(rerr, "ConsumeWithDelay: can't set handle time")
-					}
+func (m *Manager) Consume(ctx context.Context, queue string, pollTimeout time.Duration, handler func(value string)) {
+	ticker := time.NewTicker(pollTimeout)
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				lt, err := m.getQueueLastPopTime(queue, time.Now().UTC())
+				if err != nil {
+					fmt.Println("Consume: can't get queue last pop time")
+					break
 				}
-				return err
+				t, err := m.GetQueueTimeout(queue)
+				if err != nil {
+					fmt.Println("Consume: can't get queue timeout")
+					break
+				}
+				if time.Now().UTC().After(lt.UTC().Add(t)) {
+					val, err := m.Pop(queue)
+					if err != nil {
+						fmt.Println("Consume: can't get pop elemet")
+						break
+					}
+					handler(val)
+				}
 			}
-			job.Checkin(fmt.Sprintf("waiting to process %s", time.Now().UTC().Sub(t.UTC()).Truncate(time.Second)))
 		}
-
-		return nil
-	})
-
-	pool.Start()
-}
-
-func (m *Manager) Consume(queue string, handler func(job *work.Job) error) {
-	pool := work.NewWorkerPool(Context{}, 10, MemezisNamespace, m.redis)
-
-	pool.JobWithOptions(queue, work.JobOptions{MaxConcurrency: 1}, func(job *work.Job) error {
-		err := handler(job)
-		if err != nil {
-			return errors.Wrap(err, "Consume: error handling job")
-		}
-		return err
-	})
-
-	pool.Start()
-}
-
-func timeoutKey(queue string) string {
-	return fmt.Sprintf("%s:%s:timeout", MemezisNamespace, queue)
-}
-
-func lastOperationTimestampKey(queue string) string {
-	return fmt.Sprintf("%s:%s:last_operation_timeout", MemezisNamespace, queue)
-}
-
-func queueJobsListKey(queue string) string {
-	return fmt.Sprintf("%s:jobs:%s", MemezisNamespace, queue)
-}
-
-func queueLockedItemsKey(queue string) string {
-	return fmt.Sprintf("%s:jobs:%s:lock", MemezisNamespace, queue)
+	}(ctx)
 }
 
 func (m *Manager) SetQueueTimeout(queue string, d time.Duration) error {
 	conn := m.redis.Get()
 	defer conn.Close()
 
-	_, err := conn.Do("SET", timeoutKey(queue), d.Seconds())
+	_, err := conn.Do("SET", m.timeoutKey(queue), d.Seconds())
 	if err != nil {
 		return errors.Wrap(err, "QueueManager.SetQueueTimeout: can't set timeout")
 	}
@@ -144,7 +120,7 @@ func (m *Manager) GetQueueTimeout(queue string) (time.Duration, error) {
 	conn := m.redis.Get()
 	defer conn.Close()
 
-	t, err := redis.Int64(conn.Do("GET", timeoutKey(queue)))
+	t, err := redis.Int64(conn.Do("GET", m.timeoutKey(queue)))
 	if err != nil {
 		if errors.Cause(err) == redis.ErrNil {
 			return time.Minute, nil
@@ -155,33 +131,53 @@ func (m *Manager) GetQueueTimeout(queue string) (time.Duration, error) {
 	return time.Second * time.Duration(t), nil
 }
 
-func (m *Manager) updateQueueLastHandleTime(queue string) error {
+func (m *Manager) updateQueueLastPopTime(queue string, t time.Time) error {
 	conn := m.redis.Get()
 	defer conn.Close()
 
-	_, err := conn.Do("SET", lastOperationTimestampKey(queue), time.Now().UTC().Unix())
+	_, err := conn.Do("SET", m.lastOperationTimestampKey(queue), t.Unix())
 	if err != nil {
-		return errors.Wrap(err, "QueueManager.SetQueueTimeout: can't set handle time")
+		return errors.Wrap(err, "QueueManager.updateQueueLastPopTime: can't set handle time")
 	}
 	return nil
 }
 
-func (m *Manager) getQueueLastHandleTime(queue string) (time.Time, error) {
+func (m *Manager) getQueueLastPopTime(queue string, dflt time.Time) (time.Time, error) {
 	conn := m.redis.Get()
 	defer conn.Close()
 
-	res, err := redis.Int64(conn.Do("GET", lastOperationTimestampKey(queue)))
+	_ = conn.Send("MULTI")
+	_ = conn.Send("SETNX", m.lastOperationTimestampKey(queue), dflt.Unix())
+	_ = conn.Send("GET", m.lastOperationTimestampKey(queue))
+	res, err := redis.Int64s(conn.Do("EXEC"))
 	if err != nil {
-		if errors.Cause(err) == redis.ErrNil {
-			t := time.Now().UTC()
-			_, err = conn.Do("SETNX", lastOperationTimestampKey(queue), t.Unix())
-			if err != nil {
-				return time.Time{}, errors.Wrap(err, "QueueManager.SetQueueTimeout: can't set handle time")
-			}
-			return t, nil
-		}
-		return time.Time{}, errors.Wrap(err, "QueueManager.SetQueueTimeout: can't get handle time")
+		return time.Time{}, errors.Wrap(err, "can't get handle time")
+	}
+	if len(res) != 2 {
+		return time.Time{}, errors.Wrap(err, "unexpected answer length")
 	}
 
-	return time.Unix(res, 0), nil
+	return time.Unix(res[1], 0).UTC(), nil
+}
+
+// KEYS
+
+func (m *Manager) queueKey(queue string) string {
+	return fmt.Sprintf("%s:%s", m.ns, queue)
+}
+
+func (m *Manager) timeoutKey(queue string) string {
+	return fmt.Sprintf("%s:%s:timeout", m.ns, queue)
+}
+
+func (m *Manager) lastOperationTimestampKey(queue string) string {
+	return fmt.Sprintf("%s:%s:last_pop_time", m.ns, queue)
+}
+
+func (m *Manager) queueJobsListKey(queue string) string {
+	return fmt.Sprintf("%s:jobs:%s", m.ns, queue)
+}
+
+func (m *Manager) queueLockedItemsKey(queue string) string {
+	return fmt.Sprintf("%s:jobs:%s:lock", m.ns, queue)
 }
