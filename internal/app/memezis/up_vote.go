@@ -5,10 +5,11 @@ package memezis
 
 import (
 	"context"
+
 	"github.com/cherya/memezis/internal/app/store"
-	e "github.com/cherya/memezis/pkg/errors"
 	desc "github.com/cherya/memezis/pkg/memezis"
-	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 func (i *Memezis) UpVote(ctx context.Context, req *desc.VoteRequest) (*desc.Vote, error) {
@@ -17,9 +18,9 @@ func (i *Memezis) UpVote(ctx context.Context, req *desc.VoteRequest) (*desc.Vote
 	vote, err := i.store.UpVote(ctx, postID, req.GetUserID())
 	if err != nil {
 		if err == store.ErrNotFound {
-			return nil, e.WrapC(err, http.StatusNotFound)
+			return nil, errors.Wrap(err, "UpVote: post not found")
 		}
-		return nil, e.WrapMC(err, "UpVote: can't save vote", http.StatusInternalServerError)
+		return nil, errors.Wrap(err, "UpVote: can't save vote")
 	}
 
 	status, err := i.VotePost(ctx, postID, *vote)

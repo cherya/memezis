@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,22 +14,33 @@ import (
 	fs "github.com/cherya/memezis/internal/app/filestore"
 	"github.com/cherya/memezis/internal/app/memezis"
 	s "github.com/cherya/memezis/internal/app/store"
+	"github.com/cherya/memezis/pkg/logger"
+	_ "github.com/cherya/memezis/pkg/logger"
+	desc "github.com/cherya/memezis/pkg/memezis"
 	q "github.com/cherya/memezis/pkg/queue"
 	_ "github.com/cherya/memezis/web/statik"
 
 	"github.com/go-chi/chi"
 	"github.com/gomodule/redigo/redis"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	statik "github.com/rakyll/statik/fs"
+	log "github.com/sirupsen/logrus"
 	clog "github.com/utrack/clay/v2/log"
 	"github.com/utrack/clay/v2/transport/middlewares/mwgrpc"
 	"github.com/utrack/clay/v2/transport/server"
+	"google.golang.org/grpc"
 )
+
+const logDateFormat = "02-01-2006 15:04:05"
 
 func main() {
 	initEnv()
+	logger.Init(log.DebugLevel, logDateFormat)
+	l := logger.NewLogger(log.DebugLevel, logDateFormat)
 
 	db, err := sqlx.Connect("postgres", config.GetValue(config.DatabaseDsn))
 	if err != nil {
@@ -58,36 +69,60 @@ func main() {
 		queue,
 		f,
 	)
-	port := config.GetInt(config.ServerPort)
-	srv := server.NewServer(
-		port,
+
+	httpPort := config.GetInt(config.HttpPort)
+	httpServer := server.NewServer(
+		httpPort,
 		server.WithHTTPMux(router),
 		server.WithGRPCUnaryMiddlewares(
 			mwgrpc.UnaryPanicHandler(clog.Default),
+			grpc_logrus.UnaryServerInterceptor(log.NewEntry(l)),
 			grpc_auth.UnaryServerInterceptor(auth.NewAuthenticator(getClients()).AuthMiddleware),
 		),
 	)
 
+	grpcPort := config.GetInt(config.GrpcPort)
+	listen, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	grpcServer := grpc.NewServer(
+		grpc_middleware.WithUnaryServerChain(
+			grpc_logrus.UnaryServerInterceptor(log.NewEntry(l)),
+			grpc_auth.UnaryServerInterceptor(auth.NewAuthenticator(getClients()).AuthMiddleware),
+		),
+	)
+	desc.RegisterMemezisServer(grpcServer, memezis)
+
 	go func() {
-		err = srv.Run(memezis)
+		err = httpServer.Run(memezis)
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 	}()
 
-	log.Printf("app running on port %d...", port)
+	go func() {
+		err = grpcServer.Serve(listen)
+		if err != nil {
+			log.Error(err)
+		}
+	}()
+
+	log.Infof("app running on ports: http=%d, grpc=%d", httpPort, grpcPort)
 
 	termChan := make(chan os.Signal)
 	signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)
 	<-termChan
 
-	srv.Stop()
+	httpServer.Stop()
+	grpcServer.Stop()
 }
 
 func initEnv() {
 	env := flag.String("env", "local.env", "env file with config values")
 	flag.Parse()
-	log.Printf("Loading env from %s", *env)
+	log.Info("Loading env from", *env)
 	err := godotenv.Load(*env)
 
 	if err != nil {
@@ -100,7 +135,7 @@ func initEnv() {
 func logEnv(env *string) {
 	envMap, _ := godotenv.Read(".env", *env)
 	for key, val := range envMap {
-		fmt.Printf("[godotenv] %s = %s\n", key, val)
+		log.Printf("%s = %s", key, val)
 	}
 }
 

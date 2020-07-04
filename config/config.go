@@ -9,7 +9,8 @@ import (
 type configKey string
 
 const (
-	ServerPort    configKey = "SERVER_PORT"
+	HttpPort      configKey = "HTTP_PORT"
+	GrpcPort      configKey = "GRPC_PORT"
 	DatabaseDsn   configKey = "DATABASE_DSN"
 	RedisAddress  configKey = "REDIS_ADDRESS"
 	RedisPassword configKey = "REDIS_PASSWORD"

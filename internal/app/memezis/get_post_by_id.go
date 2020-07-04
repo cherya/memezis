@@ -5,11 +5,8 @@ package memezis
 
 import (
 	"context"
-	"log"
-	"net/http"
 
 	"github.com/cherya/memezis/internal/app/store"
-	e "github.com/cherya/memezis/pkg/errors"
 	desc "github.com/cherya/memezis/pkg/memezis"
 
 	"github.com/pkg/errors"
@@ -21,9 +18,8 @@ func (i *Memezis) GetPostByID(ctx context.Context, req *desc.GetPostByIDRequest)
 	post, err := i.store.GetPostByID(ctx, postID)
 	if err != nil {
 		if errors.Cause(err) == store.ErrNotFound {
-			return nil, e.WrapC(err, http.StatusNotFound)
+			return nil, errors.Wrap(err, "post not found")
 		}
-		log.Println("GetPostByID: can't get post from store", err)
 		return nil, errors.Wrap(err, "GetPostByID: can't get post from store")
 	}
 
@@ -32,7 +28,6 @@ func (i *Memezis) GetPostByID(ctx context.Context, req *desc.GetPostByIDRequest)
 		if errors.Cause(err) == store.ErrNotFound {
 			tags = []string{}
 		}
-		log.Println("GetPostByID: can't get tags from store", err)
 		return nil, errors.Wrap(err, "GetPostByID: can't get tags from store")
 	}
 

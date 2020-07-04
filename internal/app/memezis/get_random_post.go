@@ -5,13 +5,11 @@ package memezis
 
 import (
 	"context"
-	"github.com/cherya/memezis/internal/app/store"
-	e "github.com/cherya/memezis/pkg/errors"
-	"log"
-	"net/http"
 
+	"github.com/cherya/memezis/internal/app/store"
 	desc "github.com/cherya/memezis/pkg/memezis"
-	empty "github.com/golang/protobuf/ptypes/empty"
+
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
 )
 
@@ -19,9 +17,8 @@ func (i *Memezis) GetRandomPost(ctx context.Context, req *empty.Empty) (*desc.Po
 	post, err := i.store.GetRandomPost(ctx)
 	if err != nil {
 		if errors.Cause(err) == store.ErrNotFound {
-			return nil, e.WrapC(err, http.StatusNotFound)
+			return nil, errors.Wrap(err, "no posts")
 		}
-		log.Println("GetRandomPost: can't get post from store", err)
 		return nil, errors.Wrap(err, "GetRandomPost: can't get post from store")
 	}
 
@@ -30,7 +27,6 @@ func (i *Memezis) GetRandomPost(ctx context.Context, req *empty.Empty) (*desc.Po
 		if errors.Cause(err) == store.ErrNotFound {
 			tags = []string{}
 		}
-		log.Println("GetPostByID: can't get tags from store", err)
 		return nil, errors.Wrap(err, "GetPostByID: can't get tags from store")
 	}
 

@@ -1,8 +1,9 @@
 package store
 
 import (
-	"github.com/lib/pq"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type Post struct {

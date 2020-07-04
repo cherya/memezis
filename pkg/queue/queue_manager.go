@@ -7,10 +7,8 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
-)
 
-const (
-	EverythingQueue = "everything"
+	log "github.com/sirupsen/logrus"
 )
 
 var ErrEmptyQueue = errors.New("queue is empty")
@@ -84,18 +82,20 @@ func (m *Manager) Consume(ctx context.Context, queue string, pollTimeout time.Du
 			case <-ticker.C:
 				lt, err := m.getQueueLastPopTime(queue, time.Now().UTC())
 				if err != nil {
-					fmt.Println("Consume: can't get queue last pop time")
+					log.Error("Consume: can't get queue last pop time")
 					break
 				}
 				t, err := m.GetQueueTimeout(queue)
 				if err != nil {
-					fmt.Println("Consume: can't get queue timeout")
+					log.Error("Consume: can't get queue timeout")
 					break
 				}
 				if time.Now().UTC().After(lt.UTC().Add(t)) {
 					val, err := m.Pop(queue)
 					if err != nil {
-						fmt.Println("Consume: can't get pop elemet")
+						if errors.Cause(err) != ErrEmptyQueue {
+							log.Error("Consume: can't pop elemet")
+						}
 						break
 					}
 					handler(val)

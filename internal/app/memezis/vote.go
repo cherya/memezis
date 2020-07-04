@@ -2,20 +2,18 @@ package memezis
 
 import (
 	"context"
-	"github.com/pkg/errors"
-	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/cherya/memezis/internal/app/store"
-	e "github.com/cherya/memezis/pkg/errors"
+
+	"github.com/pkg/errors"
 )
 
 // sources
 //TODO: make configurable
 const (
 	SourceMemezisBot = "memezis_bot"
-	SourcePostman    = "postman"
 )
 
 // publish channels
@@ -31,7 +29,7 @@ func (i *Memezis) VotePost(ctx context.Context, postID int64, vote store.VotesCo
 	post, err := i.store.GetPostByID(ctx, int64(postID))
 	if err != nil {
 		if errors.Cause(err) == store.ErrNotFound {
-			return store.PublishStatusUnknown, e.WrapC(err, http.StatusNotFound)
+			return store.PublishStatusUnknown, errors.Wrap(err, "post not found")
 		}
 		return store.PublishStatusUnknown, errors.Wrap(err, "VotePost: can't get post from store")
 	}

@@ -5,18 +5,15 @@ package memezis
 
 import (
 	"context"
-	"github.com/cherya/memezis/internal/app/auth"
-	"github.com/cherya/memezis/pkg/queue"
-	"log"
-	"net/http"
 	"strconv"
 	"sync"
 
+	"github.com/cherya/memezis/internal/app/auth"
 	"github.com/cherya/memezis/internal/app/store"
-	e "github.com/cherya/memezis/pkg/errors"
 	desc "github.com/cherya/memezis/pkg/memezis"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 func (i *Memezis) AddPost(ctx context.Context, req *desc.AddPostRequest) (*desc.AddPostResponse, error) {
@@ -28,20 +25,18 @@ func (i *Memezis) AddPost(ctx context.Context, req *desc.AddPostRequest) (*desc.
 
 	for _, m := range req.GetMedia() {
 		if m.GetURL() == "" && m.GetSourceID() == "" {
-			return nil, e.WrapC(errors.Errorf("AddPost: empty media %s", m), http.StatusBadRequest)
+			return nil, errors.Errorf("AddPost: empty media %s", m)
 		}
 		if m.GetURL() != "" {
 			wg.Add(1)
 			// store media forever if it exists
 			go func(mr *desc.Media) {
 				if !i.fs.IsTempObjExists(m.GetURL()) {
-					err := errors.Errorf("AddPost: object %s does not exists", m)
-					errs <- e.WrapC(err, http.StatusBadRequest)
+					errs <- errors.Errorf("AddPost: object %s does not exists", m)
 				}
 				err := i.fs.MakeObjPermanent(m.GetURL())
 				if err != nil {
-					err = errors.Wrapf(err, "AddPost: can't make object permanent (key=%s)", m)
-					errs <- e.WrapC(err, http.StatusInternalServerError)
+					errs <- errors.Wrapf(err, "AddPost: can't make object permanent (key=%s)", m)
 				}
 				wg.Done()
 			}(m)
@@ -71,17 +66,17 @@ func (i *Memezis) AddPost(ctx context.Context, req *desc.AddPostRequest) (*desc.
 	client := auth.ClientFromContext(ctx)
 	post, err := i.store.AddPost(ctx, media, req.GetTags(), fromProtoTime(req.GetCreatedAt()), client.Name, req.GetAddedBy(), req.GetText())
 	if err != nil {
-		return nil, e.WrapMC(err, "AddPost: can't save post to store", http.StatusInternalServerError)
+		return nil, errors.Wrap(err, "can't save post to store")
 	}
 
 	err = i.publishToQueues(post)
 	if err != nil {
-		log.Println("AddPost: can't add posts to queues", err)
+		log.Error("AddPost: can't add posts to queues", err)
 	}
 
 	duplicates, err := i.store.CheckDuplicate(ctx, post.ID)
 	if err != nil {
-		log.Println("AddPost: can't check duplicates", err)
+		log.Error("AddPost: can't check duplicates", err)
 	}
 	return &desc.AddPostResponse{
 		ID:         post.ID,
@@ -90,10 +85,9 @@ func (i *Memezis) AddPost(ctx context.Context, req *desc.AddPostRequest) (*desc.
 }
 
 func (i *Memezis) publishToQueues(post *store.Post) error {
-
-	err := i.qm.Push(queue.EverythingQueue, strconv.FormatInt(post.ID, 10))
+	err := i.qm.Push("everything", strconv.FormatInt(post.ID, 10))
 	if err != nil {
-		return errors.Wrapf(err, "publishToQueues: can't add post to queue (queue=%s)", queue.EverythingQueue)
+		return errors.Wrapf(err, "publishToQueues: can't add post to queue (queue=%s)", "everything")
 	}
 
 	return nil
