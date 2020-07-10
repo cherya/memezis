@@ -6,10 +6,13 @@ package memezis
 import (
 	"bytes"
 	"fmt"
+	"image/jpeg"
 	"io"
+	//"os"
 
 	desc "github.com/cherya/memezis/pkg/memezis"
 
+	"github.com/azr/phash"
 	"github.com/pkg/errors"
 )
 
@@ -34,7 +37,7 @@ func (i *Memezis) UploadMedia(stream desc.Memezis_UploadMediaServer) error {
 		return fmt.Errorf("UploadMedia: Metadata.Filename can't be empty")
 	}
 
-	media := make([]byte, meta.GetFilesize())
+	media := make([]byte, 0, meta.GetFilesize())
 
 	// read file from stream
 	for {
@@ -61,14 +64,17 @@ func (i *Memezis) UploadMedia(stream desc.Memezis_UploadMediaServer) error {
 		return errors.Wrap(err, "UploadMedia: can't close stream")
 	}
 
-	//img, _, err := image.Decode(bytes.NewReader(buf.Bytes()))
-	//if err != nil {
-	//	return errors.Wrap(err, "UploadMedia: can't convert to image")
-	//}
-	//
-	//hash := fmt.Sprintf("%x", phash.DTC(img))
-	//
-	//fmt.Println(hash)
+	img, err := jpeg.Decode(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		return errors.Wrap(err, "UploadMedia: can't convert to image")
+	}
+
+	hash := fmt.Sprintf("%x", phash.DTC(img))
+
+	err = i.saveHash(filePath, hash)
+	if err != nil {
+		return errors.Wrap(err, "UploadMedia: save hash")
+	}
 
 	return nil
 }

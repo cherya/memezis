@@ -6,6 +6,7 @@ package memezis
 import (
 	"bytes"
 	"context"
+	"github.com/gomodule/redigo/redis"
 	"time"
 
 	"github.com/cherya/memezis/internal/app/store"
@@ -18,14 +19,16 @@ type Memezis struct {
 	store DataStorageManager
 	qm    QueueManager
 	fs    FileManager
+	redis *redis.Pool
 }
 
 // NewMemezis create new Memezis
-func NewMemezis(store DataStorageManager, qm QueueManager, fs FileManager) *Memezis {
+func NewMemezis(store DataStorageManager, qm QueueManager, fs FileManager, redis *redis.Pool) *Memezis {
 	return &Memezis{
 		store: store,
 		qm:    qm,
 		fs:    fs,
+		redis: redis,
 	}
 }
 

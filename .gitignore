@@ -1,4 +1,5 @@
 /bin
+/tmp
 /localstack
 /localstack/*
 # Created by https://www.gitignore.io/api/go,vim,linux,macos,intellij,sublimetext,visualstudiocode

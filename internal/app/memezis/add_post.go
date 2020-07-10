@@ -33,10 +33,12 @@ func (i *Memezis) AddPost(ctx context.Context, req *desc.AddPostRequest) (*desc.
 			go func(mr *desc.Media) {
 				if !i.fs.IsTempObjExists(m.GetURL()) {
 					errs <- errors.Errorf("AddPost: object %s does not exists", m)
+					return
 				}
 				err := i.fs.MakeObjPermanent(m.GetURL())
 				if err != nil {
 					errs <- errors.Wrapf(err, "AddPost: can't make object permanent (key=%s)", m)
+					return
 				}
 				wg.Done()
 			}(m)
