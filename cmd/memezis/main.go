@@ -122,14 +122,15 @@ func main() {
 func initEnv() {
 	env := flag.String("env", "local.env", "env file with config values")
 	flag.Parse()
-	log.Info("Loading env from", *env)
+	log.Info("Loading env from ", *env)
 	err := godotenv.Load(*env)
 
 	if err != nil {
 		log.Fatal("Error loading .env file:", err)
 	}
-
-	logEnv(env)
+	if config.GetBool(config.Debug) {
+		logEnv(env)
+	}
 }
 
 func logEnv(env *string) {

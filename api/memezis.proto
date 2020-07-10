@@ -123,9 +123,16 @@ message GetQueueInfoResponse {
     google.protobuf.Timestamp dueTime = 3;
 }
 
+enum MediaType {
+    PNG = 0;
+    JPG = 1;
+    GIF = 2;
+}
+
 message MediaMetadata {
     string filename = 1;
-    string extension = 2;
+    MediaType type = 2;
+    int64 filesize = 3;
 }
 
 message UploadMediaRequest {

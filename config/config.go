@@ -21,6 +21,7 @@ const (
 	S3Endpoint    configKey = "S3_ENDPOINT"
 	S3BucketName  configKey = "S3_BUCKET_NAME"
 	BotClientKey  configKey = "BOT_CLIENT_KEY"
+	Debug         configKey = "DEBUG"
 )
 
 func GetValue(key configKey) string {

@@ -1148,10 +1148,23 @@ var _swaggerDef_memezis_proto = []byte(`{
         "filename": {
           "type": "string"
         },
-        "extension": {
-          "type": "string"
+        "type": {
+          "$ref": "#/definitions/MediaType"
+        },
+        "filesize": {
+          "type": "string",
+          "format": "int64"
         }
       }
+    },
+    "MediaType": {
+      "type": "string",
+      "enum": [
+        "PNG",
+        "JPG",
+        "GIF"
+      ],
+      "default": "PNG"
     },
     "Post": {
       "type": "object",

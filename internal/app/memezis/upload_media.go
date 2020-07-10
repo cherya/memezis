@@ -26,14 +26,15 @@ func (i *Memezis) UploadMedia(stream desc.Memezis_UploadMediaServer) error {
 		return fmt.Errorf("UploadMediaRequest.T has unexpected type %T. First batch must contain Metadata", x)
 	}
 
-	if meta.GetExtension() == "" {
-		return fmt.Errorf("UploadMedia: Metadata.Extension can't be empty")
+	ext := mediaTypeExtension(meta.GetType())
+	if ext == "" {
+		return fmt.Errorf("UploadMedia: unsupported Metadata.Type")
 	}
 	if meta.GetFilename() == "" {
 		return fmt.Errorf("UploadMedia: Metadata.Filename can't be empty")
 	}
 
-	media := make([]byte, 0)
+	media := make([]byte, meta.GetFilesize())
 
 	// read file from stream
 	for {
@@ -48,7 +49,7 @@ func (i *Memezis) UploadMedia(stream desc.Memezis_UploadMediaServer) error {
 	}
 
 	buf := bytes.NewBuffer(media)
-	filePath, err := i.fs.UploadTemp(buf, fmt.Sprintf("%s.%s", meta.GetFilename(), meta.GetExtension()))
+	filePath, err := i.fs.UploadTemp(buf, fmt.Sprintf("%s.%s", meta.GetFilename(), ext))
 	if err != nil {
 		return errors.Wrap(err, "UploadMedia: error saving file")
 	}
@@ -60,5 +61,27 @@ func (i *Memezis) UploadMedia(stream desc.Memezis_UploadMediaServer) error {
 		return errors.Wrap(err, "UploadMedia: can't close stream")
 	}
 
+	//img, _, err := image.Decode(bytes.NewReader(buf.Bytes()))
+	//if err != nil {
+	//	return errors.Wrap(err, "UploadMedia: can't convert to image")
+	//}
+	//
+	//hash := fmt.Sprintf("%x", phash.DTC(img))
+	//
+	//fmt.Println(hash)
+
 	return nil
+}
+
+func mediaTypeExtension(mediaType desc.MediaType) string {
+	switch mediaType {
+	case desc.MediaType_PNG:
+		return "png"
+	case desc.MediaType_JPG:
+		return "jpg"
+	case desc.MediaType_GIF:
+		return "gif"
+	default:
+		return ""
+	}
 }
