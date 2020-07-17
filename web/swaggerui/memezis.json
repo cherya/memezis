@@ -115,6 +115,40 @@
         ]
       }
     },
+    "/post/{postID}/publish": {
+      "post": {
+        "summary": "mark post as published to some channel",
+        "operationId": "Memezis_PublishPost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "postID",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PublishPostRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Memezis"
+        ]
+      }
+    },
     "/post/{postID}/upvote": {
       "post": {
         "summary": "upvote post",
@@ -200,6 +234,9 @@
         "createdAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "sourceUrl": {
+          "type": "string"
         }
       }
     },
@@ -329,6 +366,25 @@
         },
         "text": {
           "type": "string"
+        }
+      }
+    },
+    "PublishPostRequest": {
+      "type": "object",
+      "properties": {
+        "postID": {
+          "type": "string",
+          "format": "int64"
+        },
+        "URL": {
+          "type": "string"
+        },
+        "publishedTo": {
+          "type": "string"
+        },
+        "publishedAt": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },

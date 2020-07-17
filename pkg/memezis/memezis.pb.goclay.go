@@ -153,6 +153,47 @@ func (d *MemezisDesc) RegisterHTTP(mux transport.Router) {
 	}
 
 	{
+		// Handler for PublishPost, binding: POST /post/{postID}/publish
+		var h http.HandlerFunc
+		h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer r.Body.Close()
+
+			unmFunc := unmarshaler_goclay_Memezis_PublishPost_0(r)
+			rsp, err := _Memezis_PublishPost_Handler(d.svc, r.Context(), unmFunc, d.opts.UnaryInterceptor)
+
+			if err != nil {
+				if err, ok := err.(httptransport.MarshalerError); ok {
+					httpruntime.SetError(r.Context(), r, w, errors.Wrap(err.Err, "couldn't parse request"))
+					return
+				}
+				httpruntime.SetError(r.Context(), r, w, err)
+				return
+			}
+
+			if ctxErr := r.Context().Err(); ctxErr != nil && ctxErr == context.Canceled {
+				w.WriteHeader(499) // Client Closed Request
+				return
+			}
+
+			_, outbound := httpruntime.MarshalerForRequest(r)
+			w.Header().Set("Content-Type", outbound.ContentType())
+			err = outbound.Marshal(w, rsp)
+			if err != nil {
+				httpruntime.SetError(r.Context(), r, w, errors.Wrap(err, "couldn't write response"))
+				return
+			}
+		})
+
+		h = httpmw.DefaultChain(h)
+
+		if isChi {
+			chiMux.Method("POST", pattern_goclay_Memezis_PublishPost_0, h)
+		} else {
+			panic("query URI params supported only for chi.Router")
+		}
+	}
+
+	{
 		// Handler for GetPostByID, binding: GET /post/{postID}
 		var h http.HandlerFunc
 		h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -430,6 +471,57 @@ func (c *Memezis_httpClient) AddPost(ctx context.Context, in *AddPostRequest, op
 	return &ret, errors.Wrap(err, "can't unmarshal response")
 }
 
+func (c *Memezis_httpClient) PublishPost(ctx context.Context, in *PublishPostRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	mw, err := httpclient.NewMiddlewareGRPC(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	path := pattern_goclay_Memezis_PublishPost_0_builder(in)
+
+	buf := bytes.NewBuffer(nil)
+
+	m := httpruntime.DefaultMarshaler(nil)
+
+	if err = m.Marshal(buf, in); err != nil {
+		return nil, errors.Wrap(err, "can't marshal request")
+	}
+
+	req, err := http.NewRequest("POST", c.host+path, buf)
+	if err != nil {
+		return nil, errors.Wrap(err, "can't initiate HTTP request")
+	}
+	req = req.WithContext(ctx)
+
+	req.Header.Add("Accept", m.ContentType())
+
+	req, err = mw.ProcessRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	rsp, err := c.c.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "error from client")
+	}
+	defer rsp.Body.Close()
+
+	rsp, err = mw.ProcessResponse(rsp)
+	if err != nil {
+		return nil, err
+	}
+
+	if rsp.StatusCode >= 400 {
+		b, _ := ioutil.ReadAll(rsp.Body)
+		return nil, errors.Errorf("%v %v: server returned HTTP %v: '%v'", req.Method, req.URL.String(), rsp.StatusCode, string(b))
+	}
+
+	ret := empty.Empty{}
+
+	err = m.Unmarshal(rsp.Body, &ret)
+
+	return &ret, errors.Wrap(err, "can't unmarshal response")
+}
+
 func (c *Memezis_httpClient) GetPostByID(ctx context.Context, in *GetPostByIDRequest, opts ...grpc.CallOption) (*Post, error) {
 	mw, err := httpclient.NewMiddlewareGRPC(opts)
 	if err != nil {
@@ -689,6 +781,20 @@ var (
 
 	unmarshaler_goclay_Memezis_AddPost_0_boundParams = &utilities.DoubleArray{Encoding: map[string]int{"": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
 
+	pattern_goclay_Memezis_PublishPost_0 = "/post/{postID}/publish"
+
+	pattern_goclay_Memezis_PublishPost_0_builder = func(in *PublishPostRequest) string {
+		values := url.Values{}
+
+		u := url.URL{
+			Path:     fmt.Sprintf("/post/%v/publish", in.PostID),
+			RawQuery: values.Encode(),
+		}
+		return u.String()
+	}
+
+	unmarshaler_goclay_Memezis_PublishPost_0_boundParams = &utilities.DoubleArray{Encoding: map[string]int{"": 0, "postID": 1}, Base: []int{1, 1, 2, 0, 0}, Check: []int{0, 1, 1, 2, 3}}
+
 	pattern_goclay_Memezis_GetPostByID_0 = "/post/{postID}"
 
 	pattern_goclay_Memezis_GetPostByID_0_builder = func(in *GetPostByIDRequest) string {
@@ -774,6 +880,32 @@ var (
 			if err := errors.Wrap(inbound.Unmarshal(r.Body, &req), "couldn't read request JSON"); err != nil {
 				return httptransport.NewMarshalerError(httpruntime.TransformUnmarshalerError(err))
 			}
+			return nil
+		}
+	}
+
+	unmarshaler_goclay_Memezis_PublishPost_0 = func(r *http.Request) func(interface{}) error {
+		return func(rif interface{}) error {
+			req := rif.(*PublishPostRequest)
+
+			if err := errors.Wrap(runtime.PopulateQueryParameters(req, r.URL.Query(), unmarshaler_goclay_Memezis_PublishPost_0_boundParams), "couldn't populate query parameters"); err != nil {
+				return httpruntime.TransformUnmarshalerError(err)
+			}
+
+			inbound, _ := httpruntime.MarshalerForRequest(r)
+			if err := errors.Wrap(inbound.Unmarshal(r.Body, &req), "couldn't read request JSON"); err != nil {
+				return httptransport.NewMarshalerError(httpruntime.TransformUnmarshalerError(err))
+			}
+			rctx := chi.RouteContext(r.Context())
+			if rctx == nil {
+				panic("Only chi router is supported for GETs atm")
+			}
+			for pos, k := range rctx.URLParams.Keys {
+				if err := errors.Wrapf(runtime.PopulateFieldFromPath(req, k, rctx.URLParams.Values[pos]), "can't read '%v' from path", k); err != nil {
+					return httptransport.NewMarshalerError(httpruntime.TransformUnmarshalerError(err))
+				}
+			}
+
 			return nil
 		}
 	}
@@ -1004,6 +1136,40 @@ var _swaggerDef_memezis_proto = []byte(`{
         ]
       }
     },
+    "/post/{postID}/publish": {
+      "post": {
+        "summary": "mark post as published to some channel",
+        "operationId": "Memezis_PublishPost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "postID",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PublishPostRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Memezis"
+        ]
+      }
+    },
     "/post/{postID}/upvote": {
       "post": {
         "summary": "upvote post",
@@ -1089,6 +1255,9 @@ var _swaggerDef_memezis_proto = []byte(`{
         "createdAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "sourceUrl": {
+          "type": "string"
         }
       }
     },
@@ -1218,6 +1387,25 @@ var _swaggerDef_memezis_proto = []byte(`{
         },
         "text": {
           "type": "string"
+        }
+      }
+    },
+    "PublishPostRequest": {
+      "type": "object",
+      "properties": {
+        "postID": {
+          "type": "string",
+          "format": "int64"
+        },
+        "URL": {
+          "type": "string"
+        },
+        "publishedTo": {
+          "type": "string"
+        },
+        "publishedAt": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },

@@ -26,7 +26,7 @@ const (
 const votesToEnqueue = 4
 
 func (i *Memezis) VotePost(ctx context.Context, postID int64, vote store.VotesCount) (store.PublishStatus, error) {
-	post, err := i.store.GetPostByID(ctx, int64(postID))
+	post, err := i.store.GetPostByID(ctx, postID)
 	if err != nil {
 		if errors.Cause(err) == store.ErrNotFound {
 			return store.PublishStatusUnknown, errors.Wrap(err, "post not found")

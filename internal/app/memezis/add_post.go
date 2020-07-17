@@ -93,7 +93,7 @@ func (i *Memezis) AddPost(ctx context.Context, req *desc.AddPostRequest) (*desc.
 	}
 
 	client := auth.ClientFromContext(ctx)
-	post, err := i.store.AddPost(ctx, media, req.GetTags(), fromProtoTime(req.GetCreatedAt()), client.Name, req.GetAddedBy(), req.GetText())
+	post, err := i.store.AddPost(ctx, media, req.GetTags(), fromProtoTime(req.GetCreatedAt()), client.Name, req.GetAddedBy(), req.GetText(), req.GetSourceUrl())
 	if err != nil {
 		return nil, errors.Wrap(err, "can't save post to store")
 	}

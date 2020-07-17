@@ -37,10 +37,11 @@ run: build
 		github.com/utrack/clay/v2/cmd/protoc-gen-goclay \
 		github.com/gogo/protobuf/protoc-gen-gofast
 
+generate: .generate .generate-swaggerui
 
 CLIENT_DIR=pkg/memezis
 REL_PATH_TO_ROOT=$(shell echo $(CLIENT_DIR) | perl -F/ -lane 'print "../"x scalar(@F)')
-generate: .gen-deps
+.generate: .gen-deps
 	mkdir -p $(CLIENT_DIR) && cd $(CLIENT_DIR) && protoc -I/usr/local/include -I. \
       -I $(GOPATH)/src \
       -I $(REL_PATH_TO_ROOT)vendor.pb \
@@ -54,5 +55,5 @@ generate: .gen-deps
 .swagger-deps:
 	$(GOINSTALL) github.com/rakyll/statik
 
-generate-swaggerui: .swagger-deps
+.generate-swaggerui: .swagger-deps
 	$(GOBIN_PATH)/statik --src $(PROJECT_PATH)/web/swaggerui --dest ./web -include=*.png,*.html,*.css,*.js,*.json

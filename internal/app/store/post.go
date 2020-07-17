@@ -16,7 +16,7 @@ func (s *Store) AddPost(
 	media []*Media,
 	postTags []string,
 	originalCreatedAt time.Time,
-	source, submittedBy, text string) (*Post, error) {
+	source, submittedBy, text, sourceURL string) (*Post, error) {
 	tagsIDs := make([]int64, 0)
 
 	if len(postTags) != 0 {
@@ -37,9 +37,9 @@ func (s *Store) AddPost(
 	hasMedia := len(media) > 0
 	post := new(Post)
 	err := s.db.GetContext(ctx, post, `
-		INSERT INTO posts(source, submitted_by, text, original_created_at, tags, has_media) 
-				    VALUES($1, $2, $3, $4, $5, $6) RETURNING *`,
-		source, submittedBy, text, originalCreatedAt, pq.Array(&tagsIDs), hasMedia)
+		INSERT INTO posts(source, submitted_by, text, original_created_at, tags, has_media, source_url) 
+				    VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+		source, submittedBy, text, originalCreatedAt, pq.Array(&tagsIDs), hasMedia, sourceURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "store.AddPost: can't add post")
 	}
@@ -167,7 +167,8 @@ func (s *Store) GetRandomPost(ctx context.Context) (*Post, error) {
 
 	return post, nil
 }
-
+// EnqueuePost mark post as enqueued
+// TODO: maybe publishedAt is not necessary
 func (s *Store) EnqueuePost(ctx context.Context, postID int64, publishedAt time.Time, to string) error {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO publish(post_id, status, published_at, published_to) VALUES ($1, $2, $3, $4)`,
@@ -175,6 +176,36 @@ func (s *Store) EnqueuePost(ctx context.Context, postID int64, publishedAt time.
 
 	if err != nil {
 		return errors.Wrap(err, "store.EnqueuePost: can't save post publish status")
+	}
+
+	return nil
+}
+
+// EnqueuePost mark post as enqueued
+// TODO: maybe publishedAt is not necessary
+func (s *Store) PublishPost(ctx context.Context, postID int64, publishedAt time.Time, to, url string) error {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE publish SET status=$1, published_at=$2, url=$3 WHERE published_to=$4 AND post_id = $5`,
+		PublishStatusPublished, publishedAt, url, to, postID)
+
+	if err != nil {
+		return errors.Wrap(err, "store.PublishPost: can't update publish status")
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "store.PublishPost: can't get rows affected")
+	}
+	if rowsAffected != 0 {
+		return nil
+	}
+
+	_, err = s.db.ExecContext(ctx,
+		`INSERT INTO publish(post_id, status, published_at, published_to, url) VALUES ($1, $2, $3, $4, $5)`,
+		postID, PublishStatusPublished, publishedAt, to, url)
+
+	if err != nil {
+		return errors.Wrap(err, "store.PublishPost: can't save post publish status")
 	}
 
 	return nil
@@ -194,4 +225,13 @@ func (s *Store) GetPostsByMediaHashes(ctx context.Context, hashes []string) ([]P
 	}
 
 	return posts, nil
+}
+
+func (s *Store) GetHashes(ctx context.Context) ([]string, error) {
+	hashes := make([]string, 0)
+	err := s.db.SelectContext(ctx, &hashes, `SELECT phash FROM media WHERE phash != ''`)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetHashes: can't select hashes")
+	}
+	return hashes, nil
 }

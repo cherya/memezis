@@ -15,6 +15,7 @@ type Post struct {
 	Tags              pq.Int64Array `db:"tags"`
 	OriginalCreatedAt time.Time     `db:"original_created_at"`
 	HasMedia          bool          `db:"has_media"`
+	SourceURL         string        `db:"source_url"`
 	Media             []Media
 	Votes             VotesCount
 }

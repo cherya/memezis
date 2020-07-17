@@ -13,6 +13,7 @@ import (
 	desc "github.com/cherya/memezis/pkg/memezis"
 
 	"github.com/gomodule/redigo/redis"
+	log "github.com/sirupsen/logrus"
 	"github.com/utrack/clay/v2/transport"
 )
 
@@ -26,7 +27,21 @@ type Memezis struct {
 
 // NewMemezis create new Memezis
 func NewMemezis(store DataStorageManager, qm QueueManager, fs FileManager, redis *redis.Pool) *Memezis {
-	hstore := hfind.NewHStore(nil)
+	strHashes, err := store.GetHashes(context.Background())
+	if err != nil {
+		log.Fatal("NewMemezis: can't get initial hashes")
+	}
+
+	hashes := make([]hfind.Hash, len(strHashes))
+	for _, h := range strHashes {
+		hash, err := hfind.FromString(h)
+		if err != nil {
+			log.Fatalf("NewMemezis: can't convert initial hash %s", h)
+		}
+		hashes = append(hashes, hash)
+	}
+	log.Infof("Loaded %d hashes to HStore", len(hashes))
+	hstore := hfind.NewHStore(hashes)
 	return &Memezis{
 		store:  store,
 		qm:     qm,
@@ -43,14 +58,16 @@ func (i *Memezis) GetDescription() transport.ServiceDesc {
 }
 
 type DataStorageManager interface {
-	AddPost(ctx context.Context, media []*store.Media, tags []string, createdAt time.Time, source, submittedBy, text string) (*store.Post, error)
+	AddPost(ctx context.Context, media []*store.Media, tags []string, createdAt time.Time, source, submittedBy, text, sourceURL string) (*store.Post, error)
 	GetPostByID(ctx context.Context, postID int64) (*store.Post, error)
 	GetRandomPost(ctx context.Context) (*store.Post, error)
 	EnqueuePost(ctx context.Context, postID int64, publishedAt time.Time, to string) error
+	PublishPost(ctx context.Context, postID int64, publishedAt time.Time, to, url string) error
 	UpVote(ctx context.Context, postID int64, userID string) (*store.VotesCount, error)
 	DownVote(ctx context.Context, postID int64, userID string) (*store.VotesCount, error)
 	GetTagsByIDs(ctx context.Context, tagsIDs []int64) ([]string, error)
 	GetPostsByMediaHashes(ctx context.Context, hashes []string) ([]store.Post, error)
+	GetHashes(ctx context.Context) ([]string, error)
 }
 
 type FileManager interface {
