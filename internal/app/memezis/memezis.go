@@ -6,29 +6,33 @@ package memezis
 import (
 	"bytes"
 	"context"
-	"github.com/gomodule/redigo/redis"
 	"time"
 
+	"github.com/cherya/memezis/internal/app/hfind"
 	"github.com/cherya/memezis/internal/app/store"
 	desc "github.com/cherya/memezis/pkg/memezis"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/utrack/clay/v2/transport"
 )
 
 type Memezis struct {
-	store DataStorageManager
-	qm    QueueManager
-	fs    FileManager
-	redis *redis.Pool
+	store  DataStorageManager
+	qm     QueueManager
+	fs     FileManager
+	redis  *redis.Pool
+	hstore *hfind.HStore
 }
 
 // NewMemezis create new Memezis
 func NewMemezis(store DataStorageManager, qm QueueManager, fs FileManager, redis *redis.Pool) *Memezis {
+	hstore := hfind.NewHStore(nil)
 	return &Memezis{
-		store: store,
-		qm:    qm,
-		fs:    fs,
-		redis: redis,
+		store:  store,
+		qm:     qm,
+		fs:     fs,
+		redis:  redis,
+		hstore: hstore,
 	}
 }
 
@@ -46,7 +50,7 @@ type DataStorageManager interface {
 	UpVote(ctx context.Context, postID int64, userID string) (*store.VotesCount, error)
 	DownVote(ctx context.Context, postID int64, userID string) (*store.VotesCount, error)
 	GetTagsByIDs(ctx context.Context, tagsIDs []int64) ([]string, error)
-	CheckDuplicate(ctx context.Context, postID int64) ([]int64, error)
+	GetPostsByMediaHashes(ctx context.Context, hashes []string) ([]store.Post, error)
 }
 
 type FileManager interface {

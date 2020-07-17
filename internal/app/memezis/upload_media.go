@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"image/jpeg"
 	"io"
-	//"os"
 
 	desc "github.com/cherya/memezis/pkg/memezis"
 
@@ -69,9 +68,7 @@ func (i *Memezis) UploadMedia(stream desc.Memezis_UploadMediaServer) error {
 		return errors.Wrap(err, "UploadMedia: can't convert to image")
 	}
 
-	hash := fmt.Sprintf("%x", phash.DTC(img))
-
-	err = i.saveHash(filePath, hash)
+	err = i.saveHash(filePath, phash.DTC(img))
 	if err != nil {
 		return errors.Wrap(err, "UploadMedia: save hash")
 	}

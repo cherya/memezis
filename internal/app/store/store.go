@@ -5,13 +5,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-type store struct {
+type Store struct {
 	db      *sqlx.DB
 	baseURL string
 }
 
-func NewStore(db *sqlx.DB) *store {
-	return &store{
+func NewStore(db *sqlx.DB) *Store {
+	return &Store{
 		db: db,
 	}
 }

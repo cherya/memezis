@@ -68,6 +68,7 @@ func main() {
 		store,
 		queue,
 		f,
+		redisPool,
 	)
 
 	httpPort := config.GetInt(config.HttpPort)

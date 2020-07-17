@@ -5,10 +5,12 @@ package memezis
 
 import (
 	"context"
+	"sort"
 	"strconv"
 	"sync"
 
 	"github.com/cherya/memezis/internal/app/auth"
+	"github.com/cherya/memezis/internal/app/hfind"
 	"github.com/cherya/memezis/internal/app/store"
 	desc "github.com/cherya/memezis/pkg/memezis"
 
@@ -43,12 +45,23 @@ func (i *Memezis) AddPost(ctx context.Context, req *desc.AddPostRequest) (*desc.
 				wg.Done()
 			}(m)
 		}
+		var hash string
+		// TODO: enum media types
+		if m.GetType() == "photo" {
+			h, err := i.getHash(m.GetURL())
+			if err == nil {
+				hash = hfind.Hash(h).String()
+			} else {
+				//TODO: fallback to hash calculation
+				log.Error("hash not found", m.GetURL(), err)
+			}
+		}
 
 		media = append(media, &store.Media{
 			Key:      m.GetURL(),
 			Type:     m.GetType(),
 			SourceID: m.GetSourceID(),
-			SHA1:     m.GetSHA1(),
+			Phash:    hash,
 		})
 	}
 
@@ -65,6 +78,20 @@ func (i *Memezis) AddPost(ctx context.Context, req *desc.AddPostRequest) (*desc.
 		return nil, err
 	}
 
+	duplicates := &desc.Duplicates{
+		Complete: make([]int64, 0),
+		Likely:   make([]int64, 0),
+		Similar:  make([]int64, 0),
+	}
+
+	if len(media) == 1 {
+		var err error
+		duplicates, err = i.checkDuplicates(ctx, media[0])
+		if err != nil {
+			log.Error("AddPost: can't get duplicates", err)
+		}
+	}
+
 	client := auth.ClientFromContext(ctx)
 	post, err := i.store.AddPost(ctx, media, req.GetTags(), fromProtoTime(req.GetCreatedAt()), client.Name, req.GetAddedBy(), req.GetText())
 	if err != nil {
@@ -76,10 +103,6 @@ func (i *Memezis) AddPost(ctx context.Context, req *desc.AddPostRequest) (*desc.
 		log.Error("AddPost: can't add posts to queues", err)
 	}
 
-	duplicates, err := i.store.CheckDuplicate(ctx, post.ID)
-	if err != nil {
-		log.Error("AddPost: can't check duplicates", err)
-	}
 	return &desc.AddPostResponse{
 		ID:         post.ID,
 		Duplicates: duplicates,
@@ -93,4 +116,65 @@ func (i *Memezis) publishToQueues(post *store.Post) error {
 	}
 
 	return nil
+}
+
+func (i *Memezis) checkDuplicates(ctx context.Context, media *store.Media) (*desc.Duplicates, error){
+	hash, err := hfind.FromString(media.Phash)
+	if err != nil {
+		return nil, errors.Wrapf(err, "can't get convert hash from string %s", media.Phash)
+	}
+	matches := i.hstore.FindKNN(hash, 20)
+	sort.Sort(matches)
+	hashes := struct {
+		Complete []string
+		Likely   []string
+		Similar  []string
+	}{}
+
+	for _, m := range matches {
+		if m.Score == 0 {
+			hashes.Complete = append(hashes.Complete, m.Hash.String())
+		} else if m.Score < 7 {
+			hashes.Likely = append(hashes.Likely, m.Hash.String())
+		} else if m.Score <= 15 {
+			hashes.Similar = append(hashes.Similar, m.Hash.String())
+		}
+	}
+
+	i.hstore.Add(hash)
+
+	//TODO: must be one query
+	complete, err := i.store.GetPostsByMediaHashes(ctx, hashes.Complete)
+	if err != nil {
+		complete = make([]store.Post, 0)
+		log.Error(errors.Wrap(err, "checkDuplicates: can't get posts by hashes (complete)"))
+	}
+	likely, err := i.store.GetPostsByMediaHashes(ctx, hashes.Likely)
+	if err != nil {
+		likely = make([]store.Post, 0)
+		log.Error(errors.Wrap(err, "checkDuplicates: can't get posts by hashes (likely)"))
+	}
+	similar, err := i.store.GetPostsByMediaHashes(ctx, hashes.Similar)
+	if err != nil {
+		similar = make([]store.Post, 0)
+		log.Error(errors.Wrap(err, "checkDuplicates: can't get posts by hashes (similar)"))
+	}
+
+	duplicates := &desc.Duplicates{
+		Complete: make([]int64, 0),
+		Likely:   make([]int64, 0),
+		Similar:  make([]int64, 0),
+	}
+
+	for _, d := range complete {
+		duplicates.Complete = append(duplicates.Complete, d.ID)
+	}
+	for _, d := range likely {
+		duplicates.Likely = append(duplicates.Likely, d.ID)
+	}
+	for _, d := range similar {
+		duplicates.Similar = append(duplicates.Similar, d.ID)
+	}
+
+	return duplicates, nil
 }

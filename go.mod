@@ -22,9 +22,7 @@ require (
 	github.com/rakyll/statik v0.1.7
 	github.com/sirupsen/logrus v1.6.0
 	github.com/utrack/clay/v2 v2.4.9
-	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/grpc v1.30.0
-	google.golang.org/grpc/examples v0.0.0-20200630190442-3de8449f8555 // indirect
 )
 
 replace github.com/cherya/memezis/pkg/queue => ./pkg/queue

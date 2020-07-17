@@ -25,7 +25,7 @@ type Media struct {
 	Key      string `db:"url"`
 	Type     string `db:"type"`
 	SourceID string `db:"source_id"`
-	SHA1     string `db:"sha1"`
+	Phash    string `db:"phash"`
 }
 
 type VotesCount struct {

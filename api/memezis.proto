@@ -89,9 +89,15 @@ message Vote {
     string status = 3;
 }
 
+message Duplicates {
+    repeated int64 complete = 1;
+    repeated int64 likely = 2;
+    repeated int64 similar = 3;
+}
+
 message AddPostResponse {
     int64 ID = 1;
-    repeated int64 duplicates = 2;
+    Duplicates duplicates = 2;
 }
 
 message GetPostByIDRequest {

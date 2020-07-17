@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (i *Memezis) saveHash(filename, hash string) error {
+func (i *Memezis) saveHash(filename string, hash uint64) error {
 	conn := i.redis.Get()
 	defer conn.Close()
 
@@ -16,21 +16,21 @@ func (i *Memezis) saveHash(filename, hash string) error {
 	key := hashKey(filename)
 	_, err := conn.Do("SET", key, hash, "EX", ex)
 	if err != nil {
-		return errors.Wrapf(err, "can't set [%s] – [%s] to redis", key, hash)
+		return errors.Wrapf(err, "can't set [%s] – [%d] to redis", key, hash)
 	}
 
 	return nil
 }
 
-func (i *Memezis) getHash(filename string) (string, error) {
+func (i *Memezis) getHash(filename string) (uint64, error) {
 	conn := i.redis.Get()
 	defer conn.Close()
 
 	key := hashKey(filename)
 
-	hash, err := redis.String(conn.Do("GET", key))
+	hash, err := redis.Uint64(conn.Do("GET", key))
 	if err != nil {
-		return "", errors.Wrapf(err, "can't get [%s] from redis", key)
+		return 0, errors.Wrapf(err, "can't get [%s] from redis", key)
 	}
 
 	return hash, nil
