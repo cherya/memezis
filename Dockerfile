@@ -6,10 +6,9 @@ ADD . /app
 
 WORKDIR /app
 
+RUN pwd
+RUN ls -la
+
 RUN make build
 
-RUN ls
-
-CMD ["/app/bin/memezis"]
-
-EXPOSE 8080
+CMD ["/app/bin/memezis", "--env=production.env"]
