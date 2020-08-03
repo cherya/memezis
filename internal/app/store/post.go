@@ -155,9 +155,17 @@ func (s *Store) DownVote(ctx context.Context, postID int64, userID string) (*Vot
 
 func (s *Store) GetRandomPost(ctx context.Context) (*Post, error) {
 	var postID int64
-	err := s.db.GetContext(ctx, &postID, `SELECT id FROM posts ORDER BY random() LIMIT 1`)
+	err := s.db.GetContext(ctx, &postID,
+		`
+			SELECT p.id
+			FROM posts p
+					 JOIN media m ON p.id = m.post_id
+			WHERE m.type = 'photo'
+			ORDER BY random()
+			LIMIT 1;
+		`)
 	if err != nil {
-		return nil, errors.Wrap(err, "store.GetRandomPost: can't get posts count")
+		return nil, errors.Wrap(err, "store.GetRandomPost: can't get post")
 	}
 
 	post, err := s.GetPostByID(ctx, postID)
