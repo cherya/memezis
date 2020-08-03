@@ -90,7 +90,7 @@ func hamming(hash1, hash2 Hash) int {
 }
 
 func insertSort(data []Match, el Match) []Match {
-	index := sort.Search(len(data), func(i int) bool { return data[i].Score < el.Score })
+	index := sort.Search(len(data), func(i int) bool { return data[i].Score > el.Score })
 	data = append(data, Match{})
 	copy(data[index+1:], data[index:])
 	data[index] = el

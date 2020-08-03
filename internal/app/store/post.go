@@ -155,7 +155,7 @@ func (s *Store) DownVote(ctx context.Context, postID int64, userID string) (*Vot
 
 func (s *Store) GetRandomPost(ctx context.Context) (*Post, error) {
 	var postID int64
-	err := s.db.GetContext(ctx, &postID, `SELECT id FROM posts OFFSET floor(random() * (SELECT count(*) FROM posts)) LIMIT 1`)
+	err := s.db.GetContext(ctx, &postID, `SELECT id FROM posts ORDER BY random() LIMIT 1`)
 	if err != nil {
 		return nil, errors.Wrap(err, "store.GetRandomPost: can't get posts count")
 	}
@@ -181,8 +181,7 @@ func (s *Store) EnqueuePost(ctx context.Context, postID int64, publishedAt time.
 	return nil
 }
 
-// EnqueuePost mark post as enqueued
-// TODO: maybe publishedAt is not necessary
+// PublishPost mark post as published
 func (s *Store) PublishPost(ctx context.Context, postID int64, publishedAt time.Time, to, url string) error {
 	res, err := s.db.ExecContext(ctx,
 		`UPDATE publish SET status=$1, published_at=$2, url=$3 WHERE published_to=$4 AND post_id = $5`,
