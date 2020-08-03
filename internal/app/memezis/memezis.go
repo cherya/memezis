@@ -32,7 +32,7 @@ func NewMemezis(store DataStorageManager, qm QueueManager, fs FileManager, redis
 		log.Fatal("NewMemezis: can't get initial hashes")
 	}
 
-	hashes := make([]hfind.Hash, len(strHashes))
+	hashes := make([]hfind.Hash, 0, len(strHashes))
 	for _, h := range strHashes {
 		hash, err := hfind.FromString(h)
 		if err != nil {
