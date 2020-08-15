@@ -20,7 +20,7 @@ type Duplicates struct {
 	Likely   []*desc.Post
 }
 
-func (i *Memezis) FindDuplicates(ctx context.Context, req *desc.FindDuplicatesRequest) (*desc.FindDuplicatesResponse, error) {
+func (i *Memezis) FindDuplicatesByMediaID(ctx context.Context, req *desc.FindDuplicatesByMediaIDRequest) (*desc.FindDuplicatesByMediaIDResponse, error) {
 	if req.GetId() == 0 {
 		return nil, errors.New("FindDuplicates: id must be greater than 0")
 	}
@@ -35,7 +35,7 @@ func (i *Memezis) FindDuplicates(ctx context.Context, req *desc.FindDuplicatesRe
 		return nil, errors.Wrap(err, "error finding media duplicates")
 	}
 
-	return &desc.FindDuplicatesResponse{
+	return &desc.FindDuplicatesByMediaIDResponse{
 		Complete: duplicates.Complete,
 		Likely:   duplicates.Likely,
 	}, nil

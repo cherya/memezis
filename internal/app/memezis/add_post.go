@@ -77,11 +77,6 @@ func (i *Memezis) AddPost(ctx context.Context, req *desc.AddPostRequest) (*desc.
 		return nil, err
 	}
 
-	duplicates := &desc.Duplicates{
-		Complete: make([]int64, 0),
-		Likely:   make([]int64, 0),
-	}
-
 	for _, m := range media {
 		h, err := hfind.FromString(m.Phash)
 		if err != nil {
@@ -103,7 +98,6 @@ func (i *Memezis) AddPost(ctx context.Context, req *desc.AddPostRequest) (*desc.
 
 	return &desc.AddPostResponse{
 		ID:         post.ID,
-		Duplicates: duplicates,
 	}, nil
 }
 

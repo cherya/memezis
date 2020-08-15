@@ -14,12 +14,12 @@
     "/duplicates/{id}": {
       "get": {
         "summary": "get posts with similar media by id",
-        "operationId": "Memezis_FindDuplicates",
+        "operationId": "Memezis_FindDuplicatesByPostID",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/FindDuplicatesResponse"
+              "$ref": "#/definitions/FindDuplicatesByPostIDResponse"
             }
           }
         },
@@ -272,32 +272,27 @@
         "ID": {
           "type": "string",
           "format": "int64"
-        },
-        "duplicates": {
-          "$ref": "#/definitions/Duplicates"
         }
       }
     },
-    "Duplicates": {
+    "FindDuplicatesByMediaIDResponse": {
       "type": "object",
       "properties": {
         "complete": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "int64"
+            "$ref": "#/definitions/Post"
           }
         },
         "likely": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "int64"
+            "$ref": "#/definitions/Post"
           }
         }
       }
     },
-    "FindDuplicatesResponse": {
+    "FindDuplicatesByPostIDResponse": {
       "type": "object",
       "properties": {
         "complete": {

@@ -75,7 +75,16 @@ service Memezis {
         };
   }
 
-  rpc FindDuplicates (FindDuplicatesRequest) returns (FindDuplicatesResponse) {
+  rpc FindDuplicatesByMediaID (FindDuplicatesByMediaIDRequest) returns (FindDuplicatesByMediaIDResponse) {
+    option (google.api.http) = {
+      get: "/duplicates/{id}"
+    };
+    option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+      summary: "get posts with similar media by id"
+    };
+  }
+
+  rpc FindDuplicatesByPostID (FindDuplicatesByPostIDRequest) returns (FindDuplicatesByPostIDResponse) {
     option (google.api.http) = {
       get: "/duplicates/{id}"
     };
@@ -116,7 +125,6 @@ message Duplicates {
 
 message AddPostResponse {
   int64 ID = 1;
-  Duplicates duplicates = 2;
 }
 
 message GetPostByIDRequest {
@@ -187,11 +195,20 @@ message UploadMediaResponse {
   string URL = 1;
 }
 
-message FindDuplicatesRequest {
+message FindDuplicatesByMediaIDRequest {
   int64 id = 1;
 }
 
-message FindDuplicatesResponse {
+message FindDuplicatesByMediaIDResponse {
+  repeated Post complete = 1;
+  repeated Post likely = 2;
+}
+
+message FindDuplicatesByPostIDRequest {
+  int64 id = 1;
+}
+
+message FindDuplicatesByPostIDResponse {
   repeated Post complete = 1;
   repeated Post likely = 2;
 }

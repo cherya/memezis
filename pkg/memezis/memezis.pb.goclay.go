@@ -405,13 +405,13 @@ func (d *MemezisDesc) RegisterHTTP(mux transport.Router) {
 	}
 
 	{
-		// Handler for FindDuplicates, binding: GET /duplicates/{id}
+		// Handler for FindDuplicatesByMediaID, binding: GET /duplicates/{id}
 		var h http.HandlerFunc
 		h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer r.Body.Close()
 
-			unmFunc := unmarshaler_goclay_Memezis_FindDuplicates_0(r)
-			rsp, err := _Memezis_FindDuplicates_Handler(d.svc, r.Context(), unmFunc, d.opts.UnaryInterceptor)
+			unmFunc := unmarshaler_goclay_Memezis_FindDuplicatesByMediaID_0(r)
+			rsp, err := _Memezis_FindDuplicatesByMediaID_Handler(d.svc, r.Context(), unmFunc, d.opts.UnaryInterceptor)
 
 			if err != nil {
 				if err, ok := err.(httptransport.MarshalerError); ok {
@@ -439,7 +439,48 @@ func (d *MemezisDesc) RegisterHTTP(mux transport.Router) {
 		h = httpmw.DefaultChain(h)
 
 		if isChi {
-			chiMux.Method("GET", pattern_goclay_Memezis_FindDuplicates_0, h)
+			chiMux.Method("GET", pattern_goclay_Memezis_FindDuplicatesByMediaID_0, h)
+		} else {
+			panic("query URI params supported only for chi.Router")
+		}
+	}
+
+	{
+		// Handler for FindDuplicatesByPostID, binding: GET /duplicates/{id}
+		var h http.HandlerFunc
+		h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer r.Body.Close()
+
+			unmFunc := unmarshaler_goclay_Memezis_FindDuplicatesByPostID_0(r)
+			rsp, err := _Memezis_FindDuplicatesByPostID_Handler(d.svc, r.Context(), unmFunc, d.opts.UnaryInterceptor)
+
+			if err != nil {
+				if err, ok := err.(httptransport.MarshalerError); ok {
+					httpruntime.SetError(r.Context(), r, w, errors.Wrap(err.Err, "couldn't parse request"))
+					return
+				}
+				httpruntime.SetError(r.Context(), r, w, err)
+				return
+			}
+
+			if ctxErr := r.Context().Err(); ctxErr != nil && ctxErr == context.Canceled {
+				w.WriteHeader(499) // Client Closed Request
+				return
+			}
+
+			_, outbound := httpruntime.MarshalerForRequest(r)
+			w.Header().Set("Content-Type", outbound.ContentType())
+			err = outbound.Marshal(w, rsp)
+			if err != nil {
+				httpruntime.SetError(r.Context(), r, w, errors.Wrap(err, "couldn't write response"))
+				return
+			}
+		})
+
+		h = httpmw.DefaultChain(h)
+
+		if isChi {
+			chiMux.Method("GET", pattern_goclay_Memezis_FindDuplicatesByPostID_0, h)
 		} else {
 			panic("query URI params supported only for chi.Router")
 		}
@@ -806,13 +847,13 @@ func (c *Memezis_httpClient) GetQueueInfo(ctx context.Context, in *GetQueueInfoR
 	return &ret, errors.Wrap(err, "can't unmarshal response")
 }
 
-func (c *Memezis_httpClient) FindDuplicates(ctx context.Context, in *FindDuplicatesRequest, opts ...grpc.CallOption) (*FindDuplicatesResponse, error) {
+func (c *Memezis_httpClient) FindDuplicatesByMediaID(ctx context.Context, in *FindDuplicatesByMediaIDRequest, opts ...grpc.CallOption) (*FindDuplicatesByMediaIDResponse, error) {
 	mw, err := httpclient.NewMiddlewareGRPC(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	path := pattern_goclay_Memezis_FindDuplicates_0_builder(in)
+	path := pattern_goclay_Memezis_FindDuplicatesByMediaID_0_builder(in)
 
 	buf := bytes.NewBuffer(nil)
 
@@ -846,7 +887,54 @@ func (c *Memezis_httpClient) FindDuplicates(ctx context.Context, in *FindDuplica
 		return nil, errors.Errorf("%v %v: server returned HTTP %v: '%v'", req.Method, req.URL.String(), rsp.StatusCode, string(b))
 	}
 
-	ret := FindDuplicatesResponse{}
+	ret := FindDuplicatesByMediaIDResponse{}
+
+	err = m.Unmarshal(rsp.Body, &ret)
+
+	return &ret, errors.Wrap(err, "can't unmarshal response")
+}
+
+func (c *Memezis_httpClient) FindDuplicatesByPostID(ctx context.Context, in *FindDuplicatesByPostIDRequest, opts ...grpc.CallOption) (*FindDuplicatesByPostIDResponse, error) {
+	mw, err := httpclient.NewMiddlewareGRPC(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	path := pattern_goclay_Memezis_FindDuplicatesByPostID_0_builder(in)
+
+	buf := bytes.NewBuffer(nil)
+
+	m := httpruntime.DefaultMarshaler(nil)
+
+	req, err := http.NewRequest("GET", c.host+path, buf)
+	if err != nil {
+		return nil, errors.Wrap(err, "can't initiate HTTP request")
+	}
+	req = req.WithContext(ctx)
+
+	req.Header.Add("Accept", m.ContentType())
+
+	req, err = mw.ProcessRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	rsp, err := c.c.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "error from client")
+	}
+	defer rsp.Body.Close()
+
+	rsp, err = mw.ProcessResponse(rsp)
+	if err != nil {
+		return nil, err
+	}
+
+	if rsp.StatusCode >= 400 {
+		b, _ := ioutil.ReadAll(rsp.Body)
+		return nil, errors.Errorf("%v %v: server returned HTTP %v: '%v'", req.Method, req.URL.String(), rsp.StatusCode, string(b))
+	}
+
+	ret := FindDuplicatesByPostIDResponse{}
 
 	err = m.Unmarshal(rsp.Body, &ret)
 
@@ -953,9 +1041,9 @@ var (
 
 	unmarshaler_goclay_Memezis_GetQueueInfo_0_boundParams = &utilities.DoubleArray{Encoding: map[string]int{"queue": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
 
-	pattern_goclay_Memezis_FindDuplicates_0 = "/duplicates/{id}"
+	pattern_goclay_Memezis_FindDuplicatesByMediaID_0 = "/duplicates/{id}"
 
-	pattern_goclay_Memezis_FindDuplicates_0_builder = func(in *FindDuplicatesRequest) string {
+	pattern_goclay_Memezis_FindDuplicatesByMediaID_0_builder = func(in *FindDuplicatesByMediaIDRequest) string {
 		values := url.Values{}
 
 		u := url.URL{
@@ -965,7 +1053,21 @@ var (
 		return u.String()
 	}
 
-	unmarshaler_goclay_Memezis_FindDuplicates_0_boundParams = &utilities.DoubleArray{Encoding: map[string]int{"id": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
+	unmarshaler_goclay_Memezis_FindDuplicatesByMediaID_0_boundParams = &utilities.DoubleArray{Encoding: map[string]int{"id": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
+
+	pattern_goclay_Memezis_FindDuplicatesByPostID_0 = "/duplicates/{id}"
+
+	pattern_goclay_Memezis_FindDuplicatesByPostID_0_builder = func(in *FindDuplicatesByPostIDRequest) string {
+		values := url.Values{}
+
+		u := url.URL{
+			Path:     fmt.Sprintf("/duplicates/%v", in.Id),
+			RawQuery: values.Encode(),
+		}
+		return u.String()
+	}
+
+	unmarshaler_goclay_Memezis_FindDuplicatesByPostID_0_boundParams = &utilities.DoubleArray{Encoding: map[string]int{"id": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
 )
 
 // marshalers for Memezis
@@ -1120,11 +1222,33 @@ var (
 		}
 	}
 
-	unmarshaler_goclay_Memezis_FindDuplicates_0 = func(r *http.Request) func(interface{}) error {
+	unmarshaler_goclay_Memezis_FindDuplicatesByMediaID_0 = func(r *http.Request) func(interface{}) error {
 		return func(rif interface{}) error {
-			req := rif.(*FindDuplicatesRequest)
+			req := rif.(*FindDuplicatesByMediaIDRequest)
 
-			if err := errors.Wrap(runtime.PopulateQueryParameters(req, r.URL.Query(), unmarshaler_goclay_Memezis_FindDuplicates_0_boundParams), "couldn't populate query parameters"); err != nil {
+			if err := errors.Wrap(runtime.PopulateQueryParameters(req, r.URL.Query(), unmarshaler_goclay_Memezis_FindDuplicatesByMediaID_0_boundParams), "couldn't populate query parameters"); err != nil {
+				return httpruntime.TransformUnmarshalerError(err)
+			}
+
+			rctx := chi.RouteContext(r.Context())
+			if rctx == nil {
+				panic("Only chi router is supported for GETs atm")
+			}
+			for pos, k := range rctx.URLParams.Keys {
+				if err := errors.Wrapf(runtime.PopulateFieldFromPath(req, k, rctx.URLParams.Values[pos]), "can't read '%v' from path", k); err != nil {
+					return httptransport.NewMarshalerError(httpruntime.TransformUnmarshalerError(err))
+				}
+			}
+
+			return nil
+		}
+	}
+
+	unmarshaler_goclay_Memezis_FindDuplicatesByPostID_0 = func(r *http.Request) func(interface{}) error {
+		return func(rif interface{}) error {
+			req := rif.(*FindDuplicatesByPostIDRequest)
+
+			if err := errors.Wrap(runtime.PopulateQueryParameters(req, r.URL.Query(), unmarshaler_goclay_Memezis_FindDuplicatesByPostID_0_boundParams), "couldn't populate query parameters"); err != nil {
 				return httpruntime.TransformUnmarshalerError(err)
 			}
 
@@ -1159,12 +1283,12 @@ var _swaggerDef_memezis_proto = []byte(`{
     "/duplicates/{id}": {
       "get": {
         "summary": "get posts with similar media by id",
-        "operationId": "Memezis_FindDuplicates",
+        "operationId": "Memezis_FindDuplicatesByPostID",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/FindDuplicatesResponse"
+              "$ref": "#/definitions/FindDuplicatesByPostIDResponse"
             }
           }
         },
@@ -1417,32 +1541,27 @@ var _swaggerDef_memezis_proto = []byte(`{
         "ID": {
           "type": "string",
           "format": "int64"
-        },
-        "duplicates": {
-          "$ref": "#/definitions/Duplicates"
         }
       }
     },
-    "Duplicates": {
+    "FindDuplicatesByMediaIDResponse": {
       "type": "object",
       "properties": {
         "complete": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "int64"
+            "$ref": "#/definitions/Post"
           }
         },
         "likely": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "int64"
+            "$ref": "#/definitions/Post"
           }
         }
       }
     },
-    "FindDuplicatesResponse": {
+    "FindDuplicatesByPostIDResponse": {
       "type": "object",
       "properties": {
         "complete": {
