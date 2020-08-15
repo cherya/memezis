@@ -405,7 +405,7 @@ func (d *MemezisDesc) RegisterHTTP(mux transport.Router) {
 	}
 
 	{
-		// Handler for FindDuplicatesByMediaID, binding: GET /duplicates/{id}
+		// Handler for FindDuplicatesByMediaID, binding: GET /duplicates/by-media/{id}
 		var h http.HandlerFunc
 		h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer r.Body.Close()
@@ -446,7 +446,7 @@ func (d *MemezisDesc) RegisterHTTP(mux transport.Router) {
 	}
 
 	{
-		// Handler for FindDuplicatesByPostID, binding: GET /duplicates/{id}
+		// Handler for FindDuplicatesByPostID, binding: GET /duplicates/by-post/{id}
 		var h http.HandlerFunc
 		h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer r.Body.Close()
@@ -1041,13 +1041,13 @@ var (
 
 	unmarshaler_goclay_Memezis_GetQueueInfo_0_boundParams = &utilities.DoubleArray{Encoding: map[string]int{"queue": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
 
-	pattern_goclay_Memezis_FindDuplicatesByMediaID_0 = "/duplicates/{id}"
+	pattern_goclay_Memezis_FindDuplicatesByMediaID_0 = "/duplicates/by-media/{id}"
 
 	pattern_goclay_Memezis_FindDuplicatesByMediaID_0_builder = func(in *FindDuplicatesByMediaIDRequest) string {
 		values := url.Values{}
 
 		u := url.URL{
-			Path:     fmt.Sprintf("/duplicates/%v", in.Id),
+			Path:     fmt.Sprintf("/duplicates/by-media/%v", in.Id),
 			RawQuery: values.Encode(),
 		}
 		return u.String()
@@ -1055,13 +1055,13 @@ var (
 
 	unmarshaler_goclay_Memezis_FindDuplicatesByMediaID_0_boundParams = &utilities.DoubleArray{Encoding: map[string]int{"id": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
 
-	pattern_goclay_Memezis_FindDuplicatesByPostID_0 = "/duplicates/{id}"
+	pattern_goclay_Memezis_FindDuplicatesByPostID_0 = "/duplicates/by-post/{id}"
 
 	pattern_goclay_Memezis_FindDuplicatesByPostID_0_builder = func(in *FindDuplicatesByPostIDRequest) string {
 		values := url.Values{}
 
 		u := url.URL{
-			Path:     fmt.Sprintf("/duplicates/%v", in.Id),
+			Path:     fmt.Sprintf("/duplicates/by-post/%v", in.Id),
 			RawQuery: values.Encode(),
 		}
 		return u.String()
@@ -1280,7 +1280,33 @@ var _swaggerDef_memezis_proto = []byte(`{
     "application/json"
   ],
   "paths": {
-    "/duplicates/{id}": {
+    "/duplicates/by-media/{id}": {
+      "get": {
+        "summary": "get posts with similar media by id",
+        "operationId": "Memezis_FindDuplicatesByMediaID",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/FindDuplicatesByMediaIDResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "Memezis"
+        ]
+      }
+    },
+    "/duplicates/by-post/{id}": {
       "get": {
         "summary": "get posts with similar media by id",
         "operationId": "Memezis_FindDuplicatesByPostID",

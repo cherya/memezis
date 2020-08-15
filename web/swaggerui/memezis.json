@@ -11,7 +11,33 @@
     "application/json"
   ],
   "paths": {
-    "/duplicates/{id}": {
+    "/duplicates/by-media/{id}": {
+      "get": {
+        "summary": "get posts with similar media by id",
+        "operationId": "Memezis_FindDuplicatesByMediaID",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/FindDuplicatesByMediaIDResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "Memezis"
+        ]
+      }
+    },
+    "/duplicates/by-post/{id}": {
       "get": {
         "summary": "get posts with similar media by id",
         "operationId": "Memezis_FindDuplicatesByPostID",

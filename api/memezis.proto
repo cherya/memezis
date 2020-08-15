@@ -77,7 +77,7 @@ service Memezis {
 
   rpc FindDuplicatesByMediaID (FindDuplicatesByMediaIDRequest) returns (FindDuplicatesByMediaIDResponse) {
     option (google.api.http) = {
-      get: "/duplicates/{id}"
+      get: "/duplicates/by-media/{id}"
     };
     option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
       summary: "get posts with similar media by id"
@@ -86,7 +86,7 @@ service Memezis {
 
   rpc FindDuplicatesByPostID (FindDuplicatesByPostIDRequest) returns (FindDuplicatesByPostIDResponse) {
     option (google.api.http) = {
-      get: "/duplicates/{id}"
+      get: "/duplicates/by-post/{id}"
     };
     option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
       summary: "get posts with similar media by id"

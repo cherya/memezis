@@ -238,6 +238,32 @@ func (s *Store) GetPostsByMediaHashes(ctx context.Context, hashes []string) ([]P
 		return nil, errors.Wrap(err, "store.GetPostsByMediaHashes: can't select posts")
 	}
 
+	postsIDs := make([]int64, 0, len(posts))
+	for _, p := range posts {
+		postsIDs = append(postsIDs, p.ID)
+	}
+	var publish []Publish
+	err = s.db.SelectContext(ctx, &publish, `SELECT * FROM publish WHERE post_id = ANY($1)`, pq.Array(postsIDs))
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return nil, errors.Wrap(err, "GetPostsByMediaHashes: can't get posts publish")
+		}
+	}
+
+	postIdToPublish := make(map[int64][]Publish)
+	if len(publish) != 0 {
+		for _, p := range publish {
+			if _, ok := postIdToPublish[p.PostID]; ok {
+				postIdToPublish[p.PostID] = append(postIdToPublish[p.PostID], p)
+			} else {
+				postIdToPublish[p.PostID] = []Publish{p}
+			}
+		}
+		for i, post := range posts {
+			posts[i].Publish = postIdToPublish[post.ID]
+		}
+	}
+
 	return posts, nil
 }
 
