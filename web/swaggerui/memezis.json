@@ -11,6 +11,32 @@
     "application/json"
   ],
   "paths": {
+    "/duplicates/{id}": {
+      "get": {
+        "summary": "get posts with similar media by id",
+        "operationId": "Memezis_FindDuplicates",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/FindDuplicatesResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "Memezis"
+        ]
+      }
+    },
     "/post": {
       "post": {
         "summary": "adding post",
@@ -268,12 +294,22 @@
             "type": "string",
             "format": "int64"
           }
-        },
-        "similar": {
+        }
+      }
+    },
+    "FindDuplicatesResponse": {
+      "type": "object",
+      "properties": {
+        "complete": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "int64"
+            "$ref": "#/definitions/Post"
+          }
+        },
+        "likely": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Post"
           }
         }
       }
@@ -298,6 +334,9 @@
     "Media": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string"
+        },
         "URL": {
           "type": "string"
         },
@@ -305,9 +344,6 @@
           "type": "string"
         },
         "sourceID": {
-          "type": "string"
-        },
-        "SHA1": {
           "type": "string"
         }
       }
@@ -365,6 +401,33 @@
           }
         },
         "text": {
+          "type": "string"
+        },
+        "sourceURL": {
+          "type": "string"
+        },
+        "publish": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Publish"
+          }
+        }
+      }
+    },
+    "Publish": {
+      "type": "object",
+      "properties": {
+        "publishedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "publishedTo": {
+          "type": "string"
+        },
+        "URL": {
+          "type": "string"
+        },
+        "Status": {
           "type": "string"
         }
       }

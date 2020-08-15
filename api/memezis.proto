@@ -75,6 +75,15 @@ service Memezis {
         };
   }
 
+  rpc FindDuplicates (FindDuplicatesRequest) returns (FindDuplicatesResponse) {
+    option (google.api.http) = {
+      get: "/duplicates/{id}"
+    };
+    option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+      summary: "get posts with similar media by id"
+    };
+  }
+
   rpc UploadMedia (stream UploadMediaRequest) returns (UploadMediaResponse);
 }
 
@@ -88,10 +97,10 @@ message AddPostRequest {
 }
 
 message Media {
-  string URL = 1;
-  string type = 2;
-  string sourceID = 3;
-  string SHA1 = 4;
+  string id = 1;
+  string URL = 2;
+  string type = 3;
+  string sourceID = 4;
 }
 
 message Vote {
@@ -103,7 +112,6 @@ message Vote {
 message Duplicates {
   repeated int64 complete = 1;
   repeated int64 likely = 2;
-  repeated int64 similar = 3;
 }
 
 message AddPostResponse {
@@ -123,6 +131,15 @@ message Post {
   Vote votes = 5;
   repeated string tags = 6;
   string text = 7;
+  string sourceURL = 8;
+  repeated Publish publish = 9;
+}
+
+message Publish {
+  google.protobuf.Timestamp publishedAt = 1;
+  string publishedTo = 2;
+  string URL = 3;
+  string Status = 4;
 }
 
 message PublishPostRequest {
@@ -168,4 +185,13 @@ message UploadMediaRequest {
 
 message UploadMediaResponse {
   string URL = 1;
+}
+
+message FindDuplicatesRequest {
+  int64 id = 1;
+}
+
+message FindDuplicatesResponse {
+  repeated Post complete = 1;
+  repeated Post likely = 2;
 }

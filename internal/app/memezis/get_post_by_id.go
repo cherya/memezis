@@ -49,13 +49,25 @@ func toProtoPost(post *store.Post, tags []string, getURL func(string) string) *d
 		})
 	}
 
+	publish := make([]*desc.Publish, 0, len(post.Publish))
+	for _, p := range post.Publish {
+		publish = append(publish, &desc.Publish{
+			PublishedAt: toProtoTime(p.PublishedAt),
+			PublishedTo: p.PublishedTo,
+			URL:         p.URL,
+			Status:      p.Status,
+		})
+	}
+
 	return &desc.Post{
-		ID:      post.ID,
-		Media:   media,
-		Votes:   votes,
-		AddedBy: post.SubmittedBy,
-		Source:  post.Source,
-		Text:    post.Text,
-		Tags:    tags,
+		ID:        post.ID,
+		Media:     media,
+		Votes:     votes,
+		AddedBy:   post.SubmittedBy,
+		Source:    post.Source,
+		Text:      post.Text,
+		Tags:      tags,
+		SourceURL: post.SourceURL,
+		Publish:   publish,
 	}
 }

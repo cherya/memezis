@@ -60,7 +60,7 @@ func (s *Store) GetPostByID(ctx context.Context, postID int64) (*Post, error) {
 	var post Post
 	err := s.db.GetContext(ctx, &post, `
 		SELECT 
-       		id, source, submitted_by, text, tags, created_at, original_created_at, has_media
+       		id, source, submitted_by, text, tags, created_at, original_created_at, has_media, source_url, source
         FROM posts WHERE id = $1
        `, postID)
 
@@ -82,6 +82,13 @@ func (s *Store) GetPostByID(ctx context.Context, postID int64) (*Post, error) {
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return nil, errors.Wrapf(err, "GetPostByID: can't get post media (postID=%d)", postID)
+		}
+	}
+
+	err = s.db.SelectContext(ctx, &post.Publish, `SELECT * FROM publish WHERE post_id = $1`, postID)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return nil, errors.Wrapf(err, "GetPostByID: can't get post publish (postID=%d)", postID)
 		}
 	}
 
@@ -222,7 +229,7 @@ func (s *Store) GetPostsByMediaHashes(ctx context.Context, hashes []string) ([]P
 	posts := make([]Post, 0)
 	err := s.db.SelectContext(ctx, &posts, `
 		SELECT 
-       		id, source, submitted_by, text, tags, created_at, original_created_at, has_media
+       		id, source, submitted_by, text, tags, created_at, original_created_at, has_media, source_url, source
         FROM posts WHERE id IN (
             SELECT post_id FROM media WHERE phash = ANY($1) 
 		)
@@ -241,4 +248,13 @@ func (s *Store) GetHashes(ctx context.Context) ([]string, error) {
 		return nil, errors.Wrap(err, "GetHashes: can't select hashes")
 	}
 	return hashes, nil
+}
+
+func (s *Store) GetMediaByIDs(ctx context.Context, ids []int64) ([]Media, error) {
+	media := make([]Media, 0)
+	err := s.db.SelectContext(ctx, &media, `SELECT * FROM media WHERE id = ANY($1)`, pq.Array(ids))
+	if err != nil {
+		return nil, errors.Wrap(err, "GetMediaByIDs: can't select media")
+	}
+	return media, nil
 }

@@ -5,7 +5,6 @@ package memezis
 
 import (
 	"context"
-	"sort"
 	"strconv"
 	"sync"
 
@@ -81,15 +80,14 @@ func (i *Memezis) AddPost(ctx context.Context, req *desc.AddPostRequest) (*desc.
 	duplicates := &desc.Duplicates{
 		Complete: make([]int64, 0),
 		Likely:   make([]int64, 0),
-		Similar:  make([]int64, 0),
 	}
 
-	if len(media) == 1 {
-		var err error
-		duplicates, err = i.checkDuplicates(ctx, media[0])
+	for _, m := range media {
+		h, err := hfind.FromString(m.Phash)
 		if err != nil {
-			log.Error("AddPost: can't get duplicates", err)
+			log.Errorf(errors.Wrap(err, "can't convert hash").Error())
 		}
+		i.hstore.Add(h)
 	}
 
 	client := auth.ClientFromContext(ctx)
@@ -116,65 +114,4 @@ func (i *Memezis) publishToQueues(post *store.Post) error {
 	}
 
 	return nil
-}
-
-func (i *Memezis) checkDuplicates(ctx context.Context, media *store.Media) (*desc.Duplicates, error){
-	hash, err := hfind.FromString(media.Phash)
-	if err != nil {
-		return nil, errors.Wrapf(err, "can't get convert hash from string %s", media.Phash)
-	}
-	matches := i.hstore.FindKNN(hash, 20)
-	sort.Sort(matches)
-	hashes := struct {
-		Complete []string
-		Likely   []string
-		Similar  []string
-	}{}
-
-	for _, m := range matches {
-		if m.Score == 0 {
-			hashes.Complete = append(hashes.Complete, m.Hash.String())
-		} else if m.Score < 7 {
-			hashes.Likely = append(hashes.Likely, m.Hash.String())
-		} else if m.Score <= 15 {
-			hashes.Similar = append(hashes.Similar, m.Hash.String())
-		}
-	}
-
-	i.hstore.Add(hash)
-
-	//TODO: must be one query
-	complete, err := i.store.GetPostsByMediaHashes(ctx, hashes.Complete)
-	if err != nil {
-		complete = make([]store.Post, 0)
-		log.Error(errors.Wrap(err, "checkDuplicates: can't get posts by hashes (complete)"))
-	}
-	likely, err := i.store.GetPostsByMediaHashes(ctx, hashes.Likely)
-	if err != nil {
-		likely = make([]store.Post, 0)
-		log.Error(errors.Wrap(err, "checkDuplicates: can't get posts by hashes (likely)"))
-	}
-	similar, err := i.store.GetPostsByMediaHashes(ctx, hashes.Similar)
-	if err != nil {
-		similar = make([]store.Post, 0)
-		log.Error(errors.Wrap(err, "checkDuplicates: can't get posts by hashes (similar)"))
-	}
-
-	duplicates := &desc.Duplicates{
-		Complete: make([]int64, 0),
-		Likely:   make([]int64, 0),
-		Similar:  make([]int64, 0),
-	}
-
-	for _, d := range complete {
-		duplicates.Complete = append(duplicates.Complete, d.ID)
-	}
-	for _, d := range likely {
-		duplicates.Likely = append(duplicates.Likely, d.ID)
-	}
-	for _, d := range similar {
-		duplicates.Similar = append(duplicates.Similar, d.ID)
-	}
-
-	return duplicates, nil
 }

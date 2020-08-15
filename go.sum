@@ -159,6 +159,7 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
+github.com/utrack/clay v1.0.2 h1:CR0e4ZWGfkK5/XiMI6HgTMKjKc+dOhOu0tRC0G5CGtA=
 github.com/utrack/clay/v2 v2.4.9 h1:9G9EhSN1dwMzx7QtPWDvqoHFAjqgkhe1bSy6eTxUuVs=
 github.com/utrack/clay/v2 v2.4.9/go.mod h1:ZUv1q33/vM/Q0W5xqP0kJh88Puu8ig9g9xV0rFvZyAw=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=

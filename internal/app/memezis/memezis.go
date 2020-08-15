@@ -61,13 +61,17 @@ type DataStorageManager interface {
 	AddPost(ctx context.Context, media []*store.Media, tags []string, createdAt time.Time, source, submittedBy, text, sourceURL string) (*store.Post, error)
 	GetPostByID(ctx context.Context, postID int64) (*store.Post, error)
 	GetRandomPost(ctx context.Context) (*store.Post, error)
+	GetPostsByMediaHashes(ctx context.Context, hashes []string) ([]store.Post, error)
+
 	EnqueuePost(ctx context.Context, postID int64, publishedAt time.Time, to string) error
 	PublishPost(ctx context.Context, postID int64, publishedAt time.Time, to, url string) error
+
 	UpVote(ctx context.Context, postID int64, userID string) (*store.VotesCount, error)
 	DownVote(ctx context.Context, postID int64, userID string) (*store.VotesCount, error)
+
 	GetTagsByIDs(ctx context.Context, tagsIDs []int64) ([]string, error)
-	GetPostsByMediaHashes(ctx context.Context, hashes []string) ([]store.Post, error)
 	GetHashes(ctx context.Context) ([]string, error)
+	GetMediaByIDs(ctx context.Context, ids []int64) ([]store.Media, error)
 }
 
 type FileManager interface {

@@ -16,6 +16,7 @@ type Post struct {
 	OriginalCreatedAt time.Time     `db:"original_created_at"`
 	HasMedia          bool          `db:"has_media"`
 	SourceURL         string        `db:"source_url"`
+	Publish           []Publish
 	Media             []Media
 	Votes             VotesCount
 }
@@ -27,6 +28,15 @@ type Media struct {
 	Type     string `db:"type"`
 	SourceID string `db:"source_id"`
 	Phash    string `db:"phash"`
+}
+
+type Publish struct {
+	ID          int       `db:"id"`
+	PostID      int64     `db:"post_id"`
+	PublishedAt time.Time `db:"published_at"`
+	PublishedTo string    `db:"published_to"`
+	URL         string    `db:"url"`
+	Status      string    `db:"status"`
 }
 
 type VotesCount struct {
