@@ -8,7 +8,7 @@ import (
 
 type TxFn func(context.Context, *sqlx.Tx) error
 
-func WithTransaction(ctx context.Context, db *sqlx.DB, fn TxFn) (err error) {
+func withTransaction(ctx context.Context, db *sqlx.DB, fn TxFn) (err error) {
 	tx, err := db.BeginTxx(ctx, nil)
 	if err != nil {
 		return

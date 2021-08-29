@@ -17,3 +17,4 @@ func NewStore(db *sqlx.DB) *Store {
 }
 
 var ErrNotFound = errors.New("not found")
+var ErrOwnPostVoting = errors.New("attempt to vote own post")

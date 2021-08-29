@@ -507,6 +507,10 @@
         },
         "status": {
           "type": "string"
+        },
+        "accepted": {
+          "type": "boolean",
+          "format": "boolean"
         }
       }
     },

@@ -107,6 +107,15 @@ func (s *Store) GetTagsByIDs(ctx context.Context, tagsIDs []int64) ([]string, er
 }
 
 func (s *Store) vote(ctx context.Context, postID int64, userID string, isUp bool) (*VotesCount, error) {
+	var postSubmittedBy string
+	err := s.db.SelectContext(ctx, &postSubmittedBy, `SELECT submitted_by FROM posts WHERE id = $1`, postID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "can't get post submited_by")
+	}
+	if postSubmittedBy == userID {
+		return nil, ErrOwnPostVoting
+	}
+
 	votes := new(VotesCount)
 	q := `insert into votes_count(post_id, %s) values($1, 1) 
 			on conflict(post_id)
@@ -123,7 +132,7 @@ func (s *Store) vote(ctx context.Context, postID int64, userID string, isUp bool
 		q = fmt.Sprintf(q, "down")
 	}
 
-	err := WithTransaction(ctx, s.db, func(ctx context.Context, tx *sqlx.Tx) error {
+	err = withTransaction(ctx, s.db, func(ctx context.Context, tx *sqlx.Tx) error {
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO votes(post_id, user_id, is_up) VALUES ($1, $2, $3) 
 			ON CONFLICT (post_id, user_id) 
@@ -261,6 +270,27 @@ func (s *Store) GetPostsByMediaHashes(ctx context.Context, hashes []string) ([]P
 		}
 		for i, post := range posts {
 			posts[i].Publish = postIdToPublish[post.ID]
+		}
+	}
+
+	media := make([]Media, 0)
+	err = s.db.SelectContext(ctx, &media, `SELECT * FROM media WHERE post_id = ANY($1)`, pq.Array(postsIDs))
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return nil, errors.Wrapf(err, "GetPostByID: can't get post media (postID=%v)", postsIDs)
+		}
+	}
+	postIdToMedia := make(map[int64][]Media)
+	for _, m := range media {
+		if md, ok := postIdToMedia[m.PostID]; ok {
+			md = append(md, m)
+		} else {
+			postIdToMedia[m.PostID] = []Media{m}
+		}
+	}
+	for i := range posts {
+		if m, ok := postIdToMedia[posts[i].ID]; ok {
+			posts[i].Media = m
 		}
 	}
 

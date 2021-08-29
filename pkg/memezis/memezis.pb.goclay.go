@@ -1778,6 +1778,10 @@ var _swaggerDef_memezis_proto = []byte(`{
         },
         "status": {
           "type": "string"
+        },
+        "accepted": {
+          "type": "boolean",
+          "format": "boolean"
         }
       }
     },

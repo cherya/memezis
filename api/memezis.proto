@@ -116,6 +116,7 @@ message Vote {
   int64 up = 1;
   int64 down = 2;
   string status = 3;
+  bool accepted = 4;
 }
 
 message Duplicates {

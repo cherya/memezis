@@ -20,6 +20,11 @@ func (i *Memezis) UpVote(ctx context.Context, req *desc.VoteRequest) (*desc.Vote
 		if err == store.ErrNotFound {
 			return nil, errors.Wrap(err, "UpVote: post not found")
 		}
+		if err == store.ErrOwnPostVoting {
+			return &desc.Vote{
+				Accepted: false,
+			}, nil
+		}
 		return nil, errors.Wrap(err, "UpVote: can't save vote")
 	}
 
@@ -29,8 +34,9 @@ func (i *Memezis) UpVote(ctx context.Context, req *desc.VoteRequest) (*desc.Vote
 	}
 
 	return &desc.Vote{
-		Up:     int64(vote.Up),
-		Down:   int64(vote.Down),
-		Status: string(status),
+		Up:       int64(vote.Up),
+		Down:     int64(vote.Down),
+		Status:   string(status),
+		Accepted: true,
 	}, nil
 }
