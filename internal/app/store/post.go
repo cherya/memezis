@@ -108,7 +108,7 @@ func (s *Store) GetTagsByIDs(ctx context.Context, tagsIDs []int64) ([]string, er
 
 func (s *Store) vote(ctx context.Context, postID int64, userID string, isUp bool) (*VotesCount, error) {
 	var postSubmittedBy string
-	err := s.db.SelectContext(ctx, &postSubmittedBy, `SELECT submitted_by FROM posts WHERE id = $1`, postID)
+	err := s.db.GetContext(ctx, &postSubmittedBy, `SELECT submitted_by FROM posts WHERE id = $1`, postID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "can't get post submited_by")
 	}

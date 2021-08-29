@@ -51,8 +51,10 @@ func (i *Memezis) findDuplicates(ctx context.Context, media store.Media, n int32
 	hashToScore := make(map[string]int, 0)
 
 	for _, m := range matches {
-		hashes = append(hashes, m.Hash.String())
-		hashToScore[m.Hash.String()] = m.Score
+		if m.Score < 7 {
+			hashes = append(hashes, m.Hash.String())
+			hashToScore[m.Hash.String()] = m.Score
+		}
 	}
 
 	//TODO: must be one query
@@ -68,13 +70,13 @@ func (i *Memezis) findDuplicates(ctx context.Context, media store.Media, n int32
 		if media.PostID == p.ID {
 			continue
 		}
-		score := 0
+		score := -1
 		for _, m := range p.Media {
 			if s, ok := hashToScore[m.Phash]; ok {
 				score = s
 			}
 		}
-		if score == 0 {
+		if score == -1 {
 			continue
 		}
 		duplicates = append(duplicates, &desc.PostDuplicate{

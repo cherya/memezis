@@ -17,10 +17,10 @@ func (i *Memezis) UpVote(ctx context.Context, req *desc.VoteRequest) (*desc.Vote
 
 	vote, err := i.store.UpVote(ctx, postID, req.GetUserID())
 	if err != nil {
-		if err == store.ErrNotFound {
+		if errors.Cause(err) == store.ErrNotFound {
 			return nil, errors.Wrap(err, "UpVote: post not found")
 		}
-		if err == store.ErrOwnPostVoting {
+		if errors.Cause(err) == store.ErrOwnPostVoting {
 			return &desc.Vote{
 				Accepted: false,
 			}, nil
