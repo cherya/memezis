@@ -23,7 +23,7 @@ const (
 )
 
 //TODO: make configurable
-const votesToEnqueue = 1
+const votesToEnqueue = 3
 
 func (i *Memezis) VotePost(ctx context.Context, postID int64, vote store.VotesCount) (store.PublishStatus, error) {
 	post, err := i.store.GetPostByID(ctx, postID)
