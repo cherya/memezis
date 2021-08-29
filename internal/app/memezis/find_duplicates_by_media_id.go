@@ -30,65 +30,57 @@ func (i *Memezis) FindDuplicatesByMediaID(ctx context.Context, req *desc.FindDup
 		return nil, errors.Wrap(err, "can't get media by ids")
 	}
 
-	duplicates, err := i.findDuplicates(ctx, media[0])
+	duplicates, err := i.findDuplicates(ctx, media[0], req.GetLimit())
 	if err != nil {
 		return nil, errors.Wrap(err, "error finding media duplicates")
 	}
 
 	return &desc.FindDuplicatesByMediaIDResponse{
-		Complete: duplicates.Complete,
-		Likely:   duplicates.Likely,
+		Duplicate: duplicates,
 	}, nil
 }
 
-func (i *Memezis) findDuplicates(ctx context.Context, media store.Media) (*Duplicates, error) {
+func (i *Memezis) findDuplicates(ctx context.Context, media store.Media, n int32) ([]*desc.PostDuplicate, error) {
 	hash, err := hfind.FromString(media.Phash)
 	if err != nil {
 		return nil, errors.Wrapf(err, "can't get convert hash from string %s", media.Phash)
 	}
-	matches := i.hstore.FindKNN(hash, 20)
+	matches := i.hstore.FindKNN(hash, int(n))
 	sort.Sort(matches)
-	hashes := struct {
-		Complete []string
-		Likely   []string
-	}{}
+	hashes := []string{}
+	hashToScore := make(map[string]int, 0)
 
 	for _, m := range matches {
-		if m.Score == 0 {
-			hashes.Complete = append(hashes.Complete, m.Hash.String())
-		} else if m.Score < 7 {
-			hashes.Likely = append(hashes.Likely, m.Hash.String())
-		}
+		hashes = append(hashes, m.Hash.String())
+		hashToScore[m.Hash.String()] = m.Score
 	}
 
 	//TODO: must be one query
-	complete, err := i.store.GetPostsByMediaHashes(ctx, hashes.Complete)
+	posts, err := i.store.GetPostsByMediaHashes(ctx, hashes)
 	if err != nil {
-		complete = make([]store.Post, 0)
+		posts = make([]store.Post, 0)
 		log.Error(errors.Wrap(err, "findDuplicates: can't get posts by hashes (complete)"))
 	}
-	likely, err := i.store.GetPostsByMediaHashes(ctx, hashes.Likely)
-	if err != nil {
-		likely = make([]store.Post, 0)
-		log.Error(errors.Wrap(err, "findDuplicates: can't get posts by hashes (likely)"))
-	}
 
-	duplicates := &Duplicates{
-		Complete: make([]*desc.Post, 0),
-		Likely:   make([]*desc.Post, 0),
-	}
-
-	for _, d := range complete {
+	duplicates := make([]*desc.PostDuplicate, 0, len(posts))
+	for _, p := range posts {
 		// exclude post which media belongs
-		if media.PostID != d.ID {
-			duplicates.Complete = append(duplicates.Complete, toProtoPost(&d, nil, i.fs.GetObjAbsoluteURL))
+		if media.PostID == p.ID {
+			continue
 		}
-	}
-	for _, d := range likely {
-		// exclude post which media belongs
-		if media.PostID != d.ID {
-			duplicates.Likely = append(duplicates.Likely, toProtoPost(&d, nil, i.fs.GetObjAbsoluteURL))
+		score := 0
+		for _, m := range p.Media {
+			if s, ok := hashToScore[m.Phash]; ok {
+				score = s
+			}
 		}
+		if score == 0 {
+			continue
+		}
+		duplicates = append(duplicates, &desc.PostDuplicate{
+			Post:  toProtoPost(&p, nil, i.fs.GetObjAbsoluteURL),
+			Score: int32(score),
+		})
 	}
 
 	return duplicates, nil

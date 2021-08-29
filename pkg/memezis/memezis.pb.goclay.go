@@ -20,7 +20,6 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-openapi/spec"
-	empty "github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/grpc-ecosystem/grpc-gateway/utilities"
 	"github.com/pkg/errors"
@@ -31,6 +30,7 @@ import (
 	"github.com/utrack/clay/v2/transport/httptransport"
 	"github.com/utrack/clay/v2/transport/swagger"
 	"google.golang.org/grpc"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // Update your shared lib or downgrade generator to v1 if there's an error
@@ -553,7 +553,7 @@ func (c *Memezis_httpClient) AddPost(ctx context.Context, in *AddPostRequest, op
 	return &ret, errors.Wrap(err, "can't unmarshal response")
 }
 
-func (c *Memezis_httpClient) PublishPost(ctx context.Context, in *PublishPostRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *Memezis_httpClient) PublishPost(ctx context.Context, in *PublishPostRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	mw, err := httpclient.NewMiddlewareGRPC(opts)
 	if err != nil {
 		return nil, err
@@ -597,7 +597,7 @@ func (c *Memezis_httpClient) PublishPost(ctx context.Context, in *PublishPostReq
 		return nil, errors.Errorf("%v %v: server returned HTTP %v: '%v'", req.Method, req.URL.String(), rsp.StatusCode, string(b))
 	}
 
-	ret := empty.Empty{}
+	ret := emptypb.Empty{}
 
 	err = m.Unmarshal(rsp.Body, &ret)
 
@@ -651,7 +651,7 @@ func (c *Memezis_httpClient) GetPostByID(ctx context.Context, in *GetPostByIDReq
 	return &ret, errors.Wrap(err, "can't unmarshal response")
 }
 
-func (c *Memezis_httpClient) GetRandomPost(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*Post, error) {
+func (c *Memezis_httpClient) GetRandomPost(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Post, error) {
 	mw, err := httpclient.NewMiddlewareGRPC(opts)
 	if err != nil {
 		return nil, err
@@ -987,7 +987,7 @@ var (
 
 	pattern_goclay_Memezis_GetRandomPost_0 = "/post/random"
 
-	pattern_goclay_Memezis_GetRandomPost_0_builder = func(in *empty.Empty) string {
+	pattern_goclay_Memezis_GetRandomPost_0_builder = func(in *emptypb.Empty) string {
 		values := url.Values{}
 
 		u := url.URL{
@@ -1045,6 +1045,7 @@ var (
 
 	pattern_goclay_Memezis_FindDuplicatesByMediaID_0_builder = func(in *FindDuplicatesByMediaIDRequest) string {
 		values := url.Values{}
+		values.Add("limit", fmt.Sprintf("%d", in.Limit))
 
 		u := url.URL{
 			Path:     fmt.Sprintf("/duplicates/by-media/%v", in.Id),
@@ -1059,6 +1060,7 @@ var (
 
 	pattern_goclay_Memezis_FindDuplicatesByPostID_0_builder = func(in *FindDuplicatesByPostIDRequest) string {
 		values := url.Values{}
+		values.Add("limit", fmt.Sprintf("%d", in.Limit))
 
 		u := url.URL{
 			Path:     fmt.Sprintf("/duplicates/by-post/%v", in.Id),
@@ -1138,7 +1140,7 @@ var (
 
 	unmarshaler_goclay_Memezis_GetRandomPost_0 = func(r *http.Request) func(interface{}) error {
 		return func(rif interface{}) error {
-			req := rif.(*empty.Empty)
+			req := rif.(*emptypb.Empty)
 
 			if err := errors.Wrap(runtime.PopulateQueryParameters(req, r.URL.Query(), unmarshaler_goclay_Memezis_GetRandomPost_0_boundParams), "couldn't populate query parameters"); err != nil {
 				return httpruntime.TransformUnmarshalerError(err)
@@ -1299,6 +1301,13 @@ var _swaggerDef_memezis_proto = []byte(`{
             "required": true,
             "type": "string",
             "format": "int64"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
           }
         ],
         "tags": [
@@ -1325,6 +1334,13 @@ var _swaggerDef_memezis_proto = []byte(`{
             "required": true,
             "type": "string",
             "format": "int64"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
           }
         ],
         "tags": [
@@ -1573,16 +1589,10 @@ var _swaggerDef_memezis_proto = []byte(`{
     "FindDuplicatesByMediaIDResponse": {
       "type": "object",
       "properties": {
-        "complete": {
+        "duplicate": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Post"
-          }
-        },
-        "likely": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Post"
+            "$ref": "#/definitions/PostDuplicate"
           }
         }
       }
@@ -1590,16 +1600,10 @@ var _swaggerDef_memezis_proto = []byte(`{
     "FindDuplicatesByPostIDResponse": {
       "type": "object",
       "properties": {
-        "complete": {
+        "duplicate": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Post"
-          }
-        },
-        "likely": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Post"
+            "$ref": "#/definitions/PostDuplicate"
           }
         }
       }
@@ -1701,6 +1705,18 @@ var _swaggerDef_memezis_proto = []byte(`{
           "items": {
             "$ref": "#/definitions/Publish"
           }
+        }
+      }
+    },
+    "PostDuplicate": {
+      "type": "object",
+      "properties": {
+        "post": {
+          "$ref": "#/definitions/Post"
+        },
+        "score": {
+          "type": "integer",
+          "format": "int32"
         }
       }
     },

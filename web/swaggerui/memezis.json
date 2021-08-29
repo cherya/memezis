@@ -30,6 +30,13 @@
             "required": true,
             "type": "string",
             "format": "int64"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
           }
         ],
         "tags": [
@@ -56,6 +63,13 @@
             "required": true,
             "type": "string",
             "format": "int64"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
           }
         ],
         "tags": [
@@ -304,16 +318,10 @@
     "FindDuplicatesByMediaIDResponse": {
       "type": "object",
       "properties": {
-        "complete": {
+        "duplicate": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Post"
-          }
-        },
-        "likely": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Post"
+            "$ref": "#/definitions/PostDuplicate"
           }
         }
       }
@@ -321,16 +329,10 @@
     "FindDuplicatesByPostIDResponse": {
       "type": "object",
       "properties": {
-        "complete": {
+        "duplicate": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Post"
-          }
-        },
-        "likely": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Post"
+            "$ref": "#/definitions/PostDuplicate"
           }
         }
       }
@@ -432,6 +434,18 @@
           "items": {
             "$ref": "#/definitions/Publish"
           }
+        }
+      }
+    },
+    "PostDuplicate": {
+      "type": "object",
+      "properties": {
+        "post": {
+          "$ref": "#/definitions/Post"
+        },
+        "score": {
+          "type": "integer",
+          "format": "int32"
         }
       }
     },

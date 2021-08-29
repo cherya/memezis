@@ -5,11 +5,11 @@ package memezis
 
 import (
 	"context"
+
 	desc "github.com/cherya/memezis/pkg/memezis"
 
 	"github.com/pkg/errors"
 )
-
 
 func (i *Memezis) FindDuplicatesByPostID(ctx context.Context, req *desc.FindDuplicatesByPostIDRequest) (*desc.FindDuplicatesByPostIDResponse, error) {
 	if req.GetId() == 0 {
@@ -26,13 +26,12 @@ func (i *Memezis) FindDuplicatesByPostID(ctx context.Context, req *desc.FindDupl
 		return &desc.FindDuplicatesByPostIDResponse{}, nil
 	}
 
-	duplicates, err := i.findDuplicates(ctx, post.Media[0])
+	duplicates, err := i.findDuplicates(ctx, post.Media[0], req.GetLimit())
 	if err != nil {
 		return nil, errors.Wrap(err, "error finding media duplicates")
 	}
 
 	return &desc.FindDuplicatesByPostIDResponse{
-		Complete: duplicates.Complete,
-		Likely:   duplicates.Likely,
+		Duplicate: duplicates,
 	}, nil
 }

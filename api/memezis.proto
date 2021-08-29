@@ -197,18 +197,23 @@ message UploadMediaResponse {
 
 message FindDuplicatesByMediaIDRequest {
   int64 id = 1;
+  int32 limit = 2;
+}
+
+message PostDuplicate {
+  Post post = 1;
+  int32 score = 2;
 }
 
 message FindDuplicatesByMediaIDResponse {
-  repeated Post complete = 1;
-  repeated Post likely = 2;
+  repeated PostDuplicate duplicate = 1;
 }
 
 message FindDuplicatesByPostIDRequest {
   int64 id = 1;
+  int32 limit = 2;
 }
 
 message FindDuplicatesByPostIDResponse {
-  repeated Post complete = 1;
-  repeated Post likely = 2;
+  repeated PostDuplicate duplicate = 1;
 }
