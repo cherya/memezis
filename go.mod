@@ -1,6 +1,6 @@
 module github.com/cherya/memezis
 
-go 1.14
+go 1.16
 
 require (
 	github.com/aws/aws-sdk-go v1.32.13
@@ -12,7 +12,7 @@ require (
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/gofrs/uuid v3.3.0+incompatible
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/jmoiron/sqlx v1.2.1-0.20191203222853-2ba0fc60eb4a
@@ -22,7 +22,8 @@ require (
 	github.com/rakyll/statik v0.1.7
 	github.com/sirupsen/logrus v1.6.0
 	github.com/utrack/clay/v2 v2.4.9
-	google.golang.org/grpc v1.30.0
+	google.golang.org/grpc v1.36.0
+	google.golang.org/grpc/examples v0.0.0-20210827151829-85b9a1a0fa3f // indirect
 )
 
 replace github.com/cherya/memezis/pkg/queue => ./pkg/queue
