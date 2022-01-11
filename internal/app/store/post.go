@@ -59,10 +59,9 @@ func (s *Store) AddPost(
 func (s *Store) GetPostByID(ctx context.Context, postID int64) (*Post, error) {
 	var post Post
 	err := s.db.GetContext(ctx, &post, `
-		SELECT 
-       		id, source, submitted_by, text, tags, created_at, original_created_at, has_media, source_url, source
-        FROM posts WHERE id = $1
-       `, postID)
+		SELECT id, source, submitted_by, text, tags, created_at, original_created_at, has_media, source_url
+		FROM posts 
+		WHERE id = $1`, postID)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
