@@ -11,7 +11,7 @@ require (
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/gofrs/uuid v3.3.0+incompatible
-	github.com/gogo/protobuf v1.3.1
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.4.3
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
